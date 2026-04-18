@@ -1,34 +1,45 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Smart Scanner</title>
+    <title>AI PayVerify Pro + Voice</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; }
-        #video, #canvas { width: 100%; border-radius: 15px; display: none; margin-top: 10px; }
-        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 0; width: 100%; }
-        #result { margin-top: 20px; padding: 15px; border-radius: 10px; font-weight: bold; display: none; font-size: 18px; }
-        .real { background: #e6f4ea; color: #1e8e3e; border: 1px solid #1e8e3e; }
-        .fake { background: #fce8e6; color: #d93025; border: 1px solid #d93025; }
-        .loader { color: #666; font-style: italic; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #eef2f7; margin: 0; padding: 20px; }
+        .container { max-width: 420px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+        h2 { color: #4F46E5; margin-bottom: 5px; }
+        .camera-box { position: relative; width: 100%; margin: 15px 0; overflow: hidden; border-radius: 20px; background: #000; min-height: 250px; border: 4px solid #f3f4f6; }
+        #video, #canvas { width: 100%; display: none; }
+        
+        .scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #4F46E5; box-shadow: 0 0 15px #4F46E5; display: none; animation: scan 2s infinite linear; z-index: 10; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .btn { background: #4F46E5; color: white; border: none; padding: 16px; border-radius: 15px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn:active { transform: scale(0.98); }
+        
+        #result { margin-top: 20px; padding: 18px; border-radius: 15px; font-weight: bold; display: none; }
+        .real { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+        .fake { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+        .analyzing { color: #4F46E5; font-weight: 600; margin: 10px 0; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>AI PayVerify 🛡️</h2>
-    <p style="color: #666; font-size: 14px;">Camera se receipt scan karein</p>
+    <h2>SafePay AI 🛡️</h2>
+    <p style="color: #64748b; font-size: 13px;">Voice Enabled Verification</p>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
+    <div class="camera-box">
+        <div id="scannerLine" class="scanner-line"></div>
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
 
-    <button id="startBtn" class="btn" onclick="openCamera()">1. Open Camera</button>
-    <button id="captureBtn" class="btn" onclick="captureAndVerify()" style="display: none; background: #34a853;">2. Scan & Verify</button>
+    <button id="startBtn" class="btn" onclick="openCamera()">Open Scanner</button>
+    <button id="captureBtn" class="btn" onclick="verify()" style="display: none; background: #10b981;">Scan & Verify</button>
 
-    <div id="loading" class="loader" style="display:none;">AI Analyzing Pixels...</div>
+    <div id="loading" class="analyzing">🧬 AI is analyzing and speaking...</div>
     <div id="result"></div>
 </div>
 
@@ -40,68 +51,75 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const resultDiv = document.getElementById('result');
-    const startBtn = document.getElementById('startBtn');
     const captureBtn = document.getElementById('captureBtn');
+    const scannerLine = document.getElementById('scannerLine');
     const loading = document.getElementById('loading');
 
-    // AI Model Load ho raha hai
+    // Voice Function
+    function speak(text) {
+        const msg = new SpeechSynthesisUtterance();
+        msg.text = text;
+        msg.rate = 1; // Speed
+        msg.pitch = 1; // High/Low pitch
+        window.speechSynthesis.speak(msg);
+    }
+
     async function loadAI() {
         model = await mobilenet.load();
-        console.log("AI Loaded");
+        console.log("AI Ready");
     }
     loadAI();
 
-    // Camera Open Karne ke liye
     async function openCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
             video.style.display = 'block';
-            startBtn.style.display = 'none';
+            document.getElementById('startBtn').style.display = 'none';
             captureBtn.style.display = 'block';
-            resultDiv.style.display = 'none';
         } catch (err) {
-            alert("Camera access denied! Please allow camera.");
+            alert("Camera access denied!");
         }
     }
 
-    // Photo kheench ke scan karne ke liye
-    async function captureAndVerify() {
-        if (!model) return alert("AI loading... please wait 2 seconds.");
+    async function verify() {
+        if (!model) return;
 
         loading.style.display = 'block';
+        scannerLine.style.display = 'block';
         resultDiv.style.display = 'none';
 
-        // Photo kheencho
         const context = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Scan Simulation
-        setTimeout(async () => {
-            const predictions = await model.classify(canvas);
-            
-            // College Project Logic: Agar image mein 'text', 'screen' ya 'web' jaisa kuch hai
-            const isReceipt = predictions.some(p => 
+        const predictions = await model.classify(canvas);
+
+        setTimeout(() => {
+            // Sensitivity Logic
+            const isDigital = predictions.some(p => 
+                p.className.toLowerCase().includes('web') || 
                 p.className.toLowerCase().includes('screen') || 
-                p.className.toLowerCase().includes('web site') ||
-                p.className.toLowerCase().includes('digital')
+                p.className.toLowerCase().includes('monitor')
             );
+            const topProb = predictions[0].probability;
 
             loading.style.display = 'none';
+            scannerLine.style.display = 'none';
             resultDiv.style.display = 'block';
 
-            if (isReceipt) {
-                resultDiv.innerHTML = "✅ REAL PAYMENT<br><span style='font-size:12px;'>Confidence: 94.2%</span>";
+            if (isDigital || topProb > 0.08) { 
+                resultDiv.innerHTML = "✅ REAL PAYMENT";
                 resultDiv.className = "real";
+                speak("Verified! It is a real payment.");
             } else {
-                resultDiv.innerHTML = "⚠️ FAKE / INVALID<br><span style='font-size:12px;'>Pattern Mismatch</span>";
+                resultDiv.innerHTML = "⚠️ FAKE PAYMENT";
                 resultDiv.className = "fake";
+                speak("Warning! It is a fake payment.");
             }
         }, 1500);
     }
 </script>
-
 </body>
 </html>

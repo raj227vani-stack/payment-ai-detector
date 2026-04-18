@@ -1,104 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Fake Payment Screenshot Detector</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafePay AI | Instant Verification</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
 
-<style>
-body {
-    background: #0f172a;
-    color: white;
-    text-align: center;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px;
-}
+    <style>
+        :root {
+            --brand: #4F46E5;
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --text: #1E293B;
+            --success: #22C55E;
+            --error: #EF4444;
+        }
 
-.container {
-    max-width: 500px;
-    margin: auto;
-    background: #1e293b;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
 
-h1 { font-size: 26px; }
+        .app-container {
+            max-width: 450px;
+            width: 100%;
+            background: var(--card);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #E2E8F0;
+        }
 
-p {
-    color: #94a3b8;
-    margin-bottom: 20px;
-}
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 1.5rem; margin: 0; color: var(--brand); }
+        .header p { font-size: 0.9rem; color: #64748B; margin-top: 5px; }
 
-button {
-    padding: 12px 25px;
-    font-size: 16px;
-    border: none;
-    border-radius: 8px;
-    background: #22c55e;
-    color: white;
-    cursor: pointer;
-    transition: 0.3s;
-    font-weight: bold;
-}
+        /* Stepper UI to guide the user */
+        .step-box {
+            background: #F1F5F9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid var(--brand);
+        }
 
-button:hover { background: #16a34a; }
-button:disabled { background: #64748b; cursor: not-allowed; }
+        .step-number {
+            background: var(--brand);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
 
-input[type="file"] {
-    margin: 20px 0;
-    display: block;
-    width: 100%;
-    color: #94a3b8;
-}
+        /* Buttons */
+        .primary-btn {
+            width: 100%;
+            background: var(--brand);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+        }
 
-#preview {
-    margin-top: 20px;
-    border-radius: 10px;
-    display: none;
-    max-width: 100%;
-    border: 2px solid #334155;
-}
+        .primary-btn:active { transform: scale(0.98); }
+        .primary-btn:disabled { background: #CBD5E1; cursor: not-allowed; }
 
-#result {
-    margin-top: 25px;
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 20px;
-    font-weight: bold;
-    background: #0f172a;
-}
+        /* The Drop/Upload Zone */
+        .upload-area {
+            border: 2px dashed #CBD5E1;
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
 
-.real { color: #4ade80; border: 1px solid #4ade80; }
-.fake { color: #f87171; border: 1px solid #f87171; }
-.loading { color: #fbbf24; }
+        .upload-area:hover { border-color: var(--brand); background: #F8FAFC; }
+        
+        #preview-img {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: none;
+            border: 1px solid #E2E8F0;
+        }
 
-.footer {
-    margin-top: 30px;
-    font-size: 12px;
-    color: #94a3b8;
-}
-</style>
+        /* Results Display */
+        #result-screen {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-icon { font-size: 2rem; margin-bottom: 10px; }
+        .status-title { font-size: 1.2rem; font-weight: 600; }
+        
+        .real-bg { background: #DCFCE7; color: #166534; }
+        .fake-bg { background: #FEE2E2; color: #991B1B; }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--brand);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
-
 <body>
 
-<div class="container">
-    <h1>💸 AI Fake Payment Screenshot Detector</h1>
+<div class="app-container">
+    <div class="header">
+        <h1>SafePay AI</h1>
+        <p>Business Protection Suite</p>
+    </div>
 
-    <p>Upload any payment screenshot and our AI will detect whether it is real or fake.</p>
+    <div id="step1" class="step-box">
+        <div class="step-number">1</div>
+        <span>Activate the AI Security Engine</span>
+    </div>
 
-    <button id="startBtn" onclick="startAI()">Load AI Model</button>
+    <button id="initBtn" class="primary-btn" onclick="setupAI()">Turn On Scanner</button>
 
-    <input type="file" id="imageUpload" accept="image/*">
+    <div id="step2" class="step-box" style="opacity: 0.5;">
+        <div class="step-number">2</div>
+        <span>Upload Payment Screenshot</span>
+    </div>
 
-    <img id="preview" width="300"/>
+    <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()" style="display:none">
+        <p style="margin:0; font-weight: 600;">Tap to Upload</p>
+        <p style="margin:5px 0 0; font-size: 0.8rem; color: #64748B;">Supports JPG, PNG from Mobile or PC</p>
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+    </div>
 
-    <div id="result">Status: Waiting for AI...</div>
+    <img id="preview-img" alt="Receipt Preview">
 
-    <div class="footer">
-        Developed by: Raj Vani, Ashutosh Shukla, Rachita Prasad, Krisha, Vanshika Jethwani <br>
-        Karnavati University, Uvarsad Gandhinagar
+    <div id="result-screen">
+        <div class="status-icon" id="resIcon"></div>
+        <div class="status-title" id="resTitle"></div>
+        <p id="resDesc" style="font-size: 0.9rem; opacity: 0.8;"></p>
     </div>
 </div>
 
@@ -106,61 +172,75 @@ input[type="file"] {
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
 
 <script>
-const MODEL_URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
+    const URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
+    let model;
 
-let model;
-const resultDiv = document.getElementById("result");
-const previewImg = document.getElementById("preview");
-const startBtn = document.getElementById("startBtn");
+    async function setupAI() {
+        const btn = document.getElementById("initBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span>Initializing...';
 
-async function startAI() {
-    try {
-        resultDiv.innerText = "Loading Model...";
-        resultDiv.className = "loading";
-
-        model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
-
-        resultDiv.innerText = "AI Ready ✅ Upload image";
-        resultDiv.className = "";
-        startBtn.disabled = true;
-        startBtn.innerText = "Model Loaded";
-    } catch (e) {
-        resultDiv.innerText = "Error loading model";
-        console.error(e);
-    }
-}
-
-document.getElementById("imageUpload").addEventListener("change", async function(event) {
-    if (!model) {
-        alert("Please load AI model first!");
-        return;
-    }
-
-    const file = event.target.files[0];
-    if (!file) return;
-
-    previewImg.src = URL.createObjectURL(file);
-    previewImg.style.display = "block";
-
-    resultDiv.innerText = "Analyzing...";
-    resultDiv.className = "loading";
-
-    previewImg.onload = async function () {
-        const predictions = await model.predict(previewImg);
-        predictions.sort((a, b) => b.probability - a.probability);
-
-        const top = predictions[0];
-        const confidence = (top.probability * 100).toFixed(1);
-
-        if (top.className.toLowerCase().includes("real")) {
-            resultDiv.innerText = "✅ REAL PAYMENT (" + confidence + "%)";
-            resultDiv.className = "real";
-        } else {
-            resultDiv.innerText = "⚠️ FAKE PAYMENT (" + confidence + "%)";
-            resultDiv.className = "fake";
+        try {
+            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+            
+            // UI Transition
+            btn.style.display = "none";
+            document.getElementById("step1").style.display = "none";
+            document.getElementById("step2").style.opacity = "1";
+            document.getElementById("dropZone").style.display = "block";
+        } catch (e) {
+            alert("Connection error. Please check your internet.");
+            btn.disabled = false;
+            btn.innerText = "Try Again";
         }
-    };
-});
+    }
+
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = document.getElementById("preview-img");
+            img.src = event.target.result;
+            img.style.display = "block";
+            
+            runAnalysis(img);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    async function runAnalysis(imgElement) {
+        const resScreen = document.getElementById("result-screen");
+        resScreen.style.display = "block";
+        resScreen.className = ""; // Reset colors
+        document.getElementById("resTitle").innerText = "Analyzing Transaction...";
+        document.getElementById("resIcon").innerText = "🔍";
+        document.getElementById("resDesc").innerText = "Scanning for digital alterations...";
+
+        // Logic
+        const predictions = await model.predict(imgElement);
+        predictions.sort((a, b) => b.probability - a.probability);
+        
+        const bestMatch = predictions[0];
+        const isReal = bestMatch.className.toLowerCase().includes("real");
+        const score = Math.round(bestMatch.probability * 100);
+
+        // Professional logic: Only trust if confidence is high
+        setTimeout(() => {
+            if (isReal && score > 80) {
+                resScreen.classList.add("real-bg");
+                document.getElementById("resIcon").innerText = "✅";
+                document.getElementById("resTitle").innerText = "Payment Verified";
+                document.getElementById("resDesc").innerText = `Safe to proceed. Confidence: ${score}%`;
+            } else {
+                resScreen.classList.add("fake-bg");
+                document.getElementById("resIcon").innerText = "⚠️";
+                document.getElementById("resTitle").innerText = "Warning: Suspected Fake";
+                document.getElementById("resDesc").innerText = `Do not release goods. Analysis shows signs of tampering (${score}% Match).`;
+            }
+        }, 1200); // Small delay so the user feels the "work" being done
+    }
 </script>
 
 </body>

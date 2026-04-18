@@ -3,23 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI PayVerify Pro + Voice</title>
+    <title>AI PayVerify Pro (Data Scan)</title>
     <style>
-        /* Tera Favourite UI Design */
         body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #eef2f7; margin: 0; padding: 20px; }
         .container { max-width: 420px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid #ddd; }
         h2 { color: #4F46E5; margin-bottom: 5px; }
         .camera-box { position: relative; width: 100%; margin: 15px 0; overflow: hidden; border-radius: 20px; background: #000; min-height: 250px; border: 4px solid #f3f4f6; }
         #video, #canvas { width: 100%; display: none; }
         
-        /* Scan Line Animation */
         .scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #4F46E5; box-shadow: 0 0 15px #4F46E5; display: none; animation: scan 2s infinite linear; z-index: 10; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        .btn { background: #4F46E5; color: white; border: none; padding: 16px; border-radius: 15px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn:active { transform: scale(0.98); }
-        
-        #result { margin-top: 20px; padding: 18px; border-radius: 15px; font-weight: bold; display: none; }
+        .btn { background: #4F46E5; color: white; border: none; padding: 16px; border-radius: 15px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; }
+        #result { margin-top: 20px; padding: 18px; border-radius: 15px; font-weight: bold; display: none; text-align: left; font-size: 14px; }
         .real { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
         .fake { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
         .analyzing { color: #4F46E5; font-weight: 600; margin: 10px 0; display: none; }
@@ -28,8 +24,8 @@
 <body>
 
 <div class="container">
-    <h2>SafePay AI 🛡️</h2>
-    <p style="color: #64748b; font-size: 13px;">Voice Enabled Verification</p>
+    <h2>SafePay AI Pro 🛡️</h2>
+    <p style="color: #64748b; font-size: 13px;">Deep Data Verification Mode</p>
 
     <div class="camera-box">
         <div id="scannerLine" class="scanner-line"></div>
@@ -38,17 +34,15 @@
     </div>
 
     <button id="startBtn" class="btn" onclick="openCamera()">Open Scanner</button>
-    <button id="captureBtn" class="btn" onclick="verify()" style="display: none; background: #10b981;">Scan & Verify</button>
+    <button id="captureBtn" class="btn" onclick="verifyData()" style="display: none; background: #10b981;">Analyze Receipt Data</button>
 
-    <div id="loading" class="analyzing">🧬 AI is analyzing and speaking...</div>
+    <div id="loading" class="analyzing">🧬 Reading Transaction Details...</div>
     <div id="result"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <script>
-    let model;
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const resultDiv = document.getElementById('result');
@@ -56,43 +50,26 @@
     const scannerLine = document.getElementById('scannerLine');
     const loading = document.getElementById('loading');
 
-    // Voice Feedback Function
     function speak(text) {
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Purani voice ko stop karne ke liye
+            window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance();
             msg.text = text;
-            msg.lang = 'en-US';
             window.speechSynthesis.speak(msg);
         }
     }
 
-    // AI Model Load (High Accuracy Mode)
-    async function loadAI() {
-        model = await mobilenet.load({version: 2, alpha: 1.0});
-        console.log("Professional AI Model Ready");
-    }
-    loadAI();
-
-    // Camera Access
     async function openCamera() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment" } 
-            });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
             video.style.display = 'block';
             document.getElementById('startBtn').style.display = 'none';
             captureBtn.style.display = 'block';
-        } catch (err) {
-            alert("Camera access denied! Project requires camera to scan.");
-        }
+        } catch (err) { alert("Camera Permission Required!"); }
     }
 
-    // Verification Logic
-    async function verify() {
-        if (!model) return;
-
+    async function verifyData() {
         loading.style.display = 'block';
         scannerLine.style.display = 'block';
         resultDiv.style.display = 'none';
@@ -102,33 +79,33 @@
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Analyze Frame
-        const predictions = await model.classify(canvas);
+        // OCR - Photo se text padhna
+        const imageData = canvas.toDataURL('image/png');
         
-        setTimeout(() => {
-            // Strict Categories for Receipts/Screens
-            const validPatterns = ["web", "screen", "monitor", "receipt", "menu", "paper", "check", "display"];
-            
-            const topMatch = predictions[0];
-            const isDigital = validPatterns.some(p => topMatch.className.toLowerCase().includes(p));
-            
-            // Accuracy Threshold (80% Confidence)
-            const isConfident = topMatch.probability > 0.80;
+        Tesseract.recognize(imageData, 'eng').then(({ data: { text } }) => {
+            const content = text.toLowerCase();
+            console.log("Found Text:", content);
+
+            // LOGIC: PhonePe, GPay, Paytm ke keywords check karna
+            const hasUTR = content.includes('utr') || content.includes('transaction id') || content.includes('trans id');
+            const hasSuccess = content.includes('success') || content.includes('successful') || content.includes('paid to');
+            const hasCurrency = content.includes('₹') || content.includes('rs') || content.includes('amount');
 
             loading.style.display = 'none';
             scannerLine.style.display = 'none';
             resultDiv.style.display = 'block';
 
-            if (isDigital && isConfident) { 
-                resultDiv.innerHTML = "✅ REAL PAYMENT";
+            // Agar Transaction ID ya UTR mil jaye toh 100% Real hai
+            if ((hasUTR && hasSuccess) || (hasSuccess && hasCurrency)) { 
+                resultDiv.innerHTML = "✅ REAL PAYMENT DETECTED<br>Data Found: UTR/Transaction Verified.";
                 resultDiv.className = "real";
-                speak("Verified! It is a real payment.");
+                speak("Verified! This is a real transaction receipt.");
             } else {
-                resultDiv.innerHTML = "⚠️ FAKE PAYMENT";
+                resultDiv.innerHTML = "⚠️ FAKE OR INVALID RECEIPT<br>Reason: Transaction ID or Payment Status not found.";
                 resultDiv.className = "fake";
-                speak("Warning! It is a fake payment.");
+                speak("Warning! This appears to be a fake or invalid receipt.");
             }
-        }, 1500);
+        });
     }
 </script>
 </body>

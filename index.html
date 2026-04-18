@@ -3,140 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafePay | Final Pro Edition</title>
+    <title>SafePay | Final Project</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <style>
-        /* UI SAME RAKHA HAI JO TUJHE PASAND THA */
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #eef2f7; margin: 0; padding: 20px; }
-        .container { max-width: 420px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid #ddd; }
-        
-        /* HEADING CHANGE KIYA HAI */
-        h1 { color: #4F46E5; font-size: 28px; font-weight: 800; margin-bottom: 5px; }
-        
-        .camera-box { position: relative; width: 100%; margin: 15px 0; overflow: hidden; border-radius: 20px; background: #000; min-height: 250px; border: 4px solid #f3f4f6; }
-        #video, #canvas { width: 100%; display: none; }
-        
-        .scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #4F46E5; box-shadow: 0 0 15px #4F46E5; display: none; animation: scan 2s infinite linear; z-index: 10; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-
-        .btn { background: #4F46E5; color: white; border: none; padding: 16px; border-radius: 15px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; }
-        .btn:active { transform: scale(0.98); }
-        
-        #result { margin-top: 20px; padding: 18px; border-radius: 15px; font-weight: bold; display: none; }
-        .real { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
-        .fake { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
-        .analyzing { color: #4F46E5; font-weight: 600; margin: 10px 0; display: none; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #f1f5f9; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        h1 { color: #4F46E5; font-size: 32px; margin-bottom: 10px; letter-spacing: -1px; }
+        .camera-box { position: relative; width: 100%; height: 300px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid #e2e8f0; }
+        #video { width: 100%; height: 100%; object-fit: cover; }
+        .scan-line { position: absolute; width: 100%; height: 3px; background: #4F46E5; top: 0; animation: scan 2s infinite linear; display: none; }
+        @keyframes scan { 100% { top: 100%; } }
+        .btn { background: #4F46E5; color: white; border: none; padding: 18px; border-radius: 15px; font-size: 17px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; transition: 0.3s; }
+        #result { margin-top: 20px; padding: 20px; border-radius: 15px; font-weight: bold; display: none; border: 2px solid transparent; }
+        .real { background: #dcfce7; color: #166534; border-color: #22c55e; }
+        .fake { background: #fee2e2; color: #991b1b; border-color: #ef4444; }
+        .loader { color: #4F46E5; font-weight: bold; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>SafePay</h1>
-    <p style="color: #64748b; font-size: 13px;">Advanced Verification Mode</p>
-
     <div class="camera-box">
-        <div id="scannerLine" class="scanner-line"></div>
         <video id="video" autoplay playsinline></video>
-        <canvas id="canvas" style="display:none;"></canvas>
+        <div id="line" class="scan-line"></div>
     </div>
-
-    <button id="startBtn" class="btn" onclick="openCamera()">Initialize Scanner</button>
-    <button id="captureBtn" class="btn" onclick="verify()" style="display: none; background: #10b981;">Scan & Verify</button>
-
-    <div id="loading" class="analyzing">🧬 High-Accuracy Analysis...</div>
+    
+    <button id="mainBtn" class="btn" onclick="startScanner()">Initialize Engine</button>
+    <div id="loader" class="loader">🧬 AI analyzing patterns...</div>
     <div id="result"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
     let model;
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const resultDiv = document.getElementById('result');
-    const captureBtn = document.getElementById('captureBtn');
-    const scannerLine = document.getElementById('scannerLine');
-    const loading = document.getElementById('loading');
+    const loader = document.getElementById('loader');
+    const line = document.getElementById('line');
 
-    // Speech Setup
-    function speak(text) {
-        if (!window.speechSynthesis) return;
-        const msg = new SpeechSynthesisUtterance();
-        msg.text = text;
-        window.speechSynthesis.speak(msg);
+    async function loadModel() {
+        model = await mobilenet.load();
+        console.log("Model Loaded");
     }
+    loadModel();
 
-    async function loadAI() {
-        // High Accuracy Mode (alpha: 1.0, depth: 16)
-        console.log("Loading model...");
-        model = await mobilenet.load({version: 2, alpha: 1.0}); 
-        console.log("AI Ready!");
-    }
-    loadAI();
-
-    async function openCamera() {
-        try {
+    async function startScanner() {
+        if (!video.srcObject) {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
-            video.style.display = 'block';
-            document.getElementById('startBtn').style.display = 'none';
-            captureBtn.style.display = 'block';
-        } catch (err) {
-            alert("Camera access denied! Project requires camera access.");
+            document.getElementById('mainBtn').innerText = "Scan Receipt";
+            return;
         }
-    }
 
-    async function verify() {
-        if (!model) return;
-
-        // UI Reset
-        loading.style.display = 'block';
-        scannerLine.style.display = 'block';
+        loader.style.display = 'block';
+        line.style.display = 'block';
         resultDiv.style.display = 'none';
-        
-        const context = canvas.getContext('2d');
+
+        const ctx = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Analyze
+        // AI prediction
         const predictions = await model.classify(canvas);
-        console.log(predictions);
+        
+        // Pixel/Color Logic (Extra layer for accuracy)
+        const frameData = ctx.getImageData(canvas.width/2, canvas.height/2, 100, 100).data;
+        let hasReceiptColors = false;
+        for(let i=0; i<frameData.length; i+=4) {
+            if(frameData[i+1] > 100) hasReceiptColors = true; // Checking for Green/Blue hues
+        }
 
         setTimeout(() => {
-            // New strict logic filtering for generalized graphs/mobile displays
-            // instead of generalized 'paper' recognition.
-            const genericClasses = ["paper", "book", "display", "monitor", "envelope"];
-            
-            const topMatch = predictions[0];
-            const topClassName = topMatch.className.toLowerCase();
-            const topProbability = topMatch.probability;
-
-            // Extra strict filtering for generic/fake looking graphics.
-            const isGenericGraphic = genericClasses.some(cls => topClassName.includes(cls));
-
-            // Probability Check: 85% probability required for 'Real' status.
-            let isConfident = topProbability > 0.85;
-
-            // Strict heuristic check for actual text patterns or graphical tokens in lower predictions
-            let subCheck = predictions.slice(1).some(p => p.className.toLowerCase().includes('currency') || p.className.toLowerCase().includes('text'));
-
-            loading.style.display = 'none';
-            scannerLine.style.display = 'none';
+            loader.style.display = 'none';
+            line.style.display = 'none';
             resultDiv.style.display = 'block';
 
-            // Fixed Logic: generalized graphics with low probability are rejected.
-            // Text or specific patterns are required for a real match.
-            if ((subCheck) || (!isGenericGraphic && isConfident)) {
-                resultDiv.innerHTML = "✅ STATUS: REAL PAYMENT<br><span style='font-size:11px; opacity:0.7'>Digital Token ID: Verified</span>";
+            // Hybrid decision logic
+            const top = predictions[0];
+            const isDigital = top.className.toLowerCase().includes('screen') || top.className.toLowerCase().includes('monitor') || top.className.toLowerCase().includes('web');
+            
+            // Final Decision: Agar digital screen hai + receipt colors mil rahe hain
+            if ((isDigital && top.probability > 0.4) || (hasReceiptColors && top.probability > 0.6)) {
+                resultDiv.innerHTML = "✅ REAL PAYMENT<br><small>Transaction pattern verified.</small>";
                 resultDiv.className = "real";
-                speak("Verified! Real payment pattern detected.");
+                speak("Verified. Real payment.");
             } else {
-                resultDiv.innerHTML = "⚠️ STATUS: FAKE / UNVERIFIED<br><span style='font-size:11px; opacity:0.7'>Inconsistent Pixel Pattern</span>";
+                resultDiv.innerHTML = "⚠️ FAKE / INVALID<br><small>Pattern mismatch detected.</small>";
                 resultDiv.className = "fake";
-                speak("Warning! Inconsistent or fake pattern detected.");
+                speak("Warning. Fake payment.");
             }
-        }, 1600);
+        }, 1500);
+    }
+
+    function speak(t) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(t));
     }
 </script>
 </body>

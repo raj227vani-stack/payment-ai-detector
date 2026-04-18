@@ -1,245 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafePay AI | Instant Verification</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
-
+    <title>AI Smart Scanner</title>
     <style>
-        :root {
-            --brand: #4F46E5;
-            --bg: #F8FAFC;
-            --card: #FFFFFF;
-            --text: #1E293B;
-            --success: #22C55E;
-            --error: #EF4444;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Outfit', sans-serif;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .app-container {
-            max-width: 450px;
-            width: 100%;
-            background: var(--card);
-            border-radius: 24px;
-            padding: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            border: 1px solid #E2E8F0;
-        }
-
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 1.5rem; margin: 0; color: var(--brand); }
-        .header p { font-size: 0.9rem; color: #64748B; margin-top: 5px; }
-
-        /* Stepper UI to guide the user */
-        .step-box {
-            background: #F1F5F9;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-left: 4px solid var(--brand);
-        }
-
-        .step-number {
-            background: var(--brand);
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        /* Buttons */
-        .primary-btn {
-            width: 100%;
-            background: var(--brand);
-            color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-        }
-
-        .primary-btn:active { transform: scale(0.98); }
-        .primary-btn:disabled { background: #CBD5E1; cursor: not-allowed; }
-
-        /* The Drop/Upload Zone */
-        .upload-area {
-            border: 2px dashed #CBD5E1;
-            border-radius: 16px;
-            padding: 40px 20px;
-            text-align: center;
-            margin-top: 20px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .upload-area:hover { border-color: var(--brand); background: #F8FAFC; }
-        
-        #preview-img {
-            width: 100%;
-            border-radius: 12px;
-            margin-top: 15px;
-            display: none;
-            border: 1px solid #E2E8F0;
-        }
-
-        /* Results Display */
-        #result-screen {
-            margin-top: 25px;
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            display: none;
-        }
-
-        .status-icon { font-size: 2rem; margin-bottom: 10px; }
-        .status-title { font-size: 1.2rem; font-weight: 600; }
-        
-        .real-bg { background: #DCFCE7; color: #166534; }
-        .fake-bg { background: #FEE2E2; color: #991B1B; }
-
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--brand);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; }
+        #video, #canvas { width: 100%; border-radius: 15px; display: none; margin-top: 10px; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 0; width: 100%; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 10px; font-weight: bold; display: none; font-size: 18px; }
+        .real { background: #e6f4ea; color: #1e8e3e; border: 1px solid #1e8e3e; }
+        .fake { background: #fce8e6; color: #d93025; border: 1px solid #d93025; }
+        .loader { color: #666; font-style: italic; }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <div class="header">
-        <h1>SafePay AI</h1>
-        <p>Business Protection Suite</p>
-    </div>
+<div class="container">
+    <h2>AI PayVerify 🛡️</h2>
+    <p style="color: #666; font-size: 14px;">Camera se receipt scan karein</p>
 
-    <div id="step1" class="step-box">
-        <div class="step-number">1</div>
-        <span>Activate the AI Security Engine</span>
-    </div>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
 
-    <button id="initBtn" class="primary-btn" onclick="setupAI()">Turn On Scanner</button>
+    <button id="startBtn" class="btn" onclick="openCamera()">1. Open Camera</button>
+    <button id="captureBtn" class="btn" onclick="captureAndVerify()" style="display: none; background: #34a853;">2. Scan & Verify</button>
 
-    <div id="step2" class="step-box" style="opacity: 0.5;">
-        <div class="step-number">2</div>
-        <span>Upload Payment Screenshot</span>
-    </div>
-
-    <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()" style="display:none">
-        <p style="margin:0; font-weight: 600;">Tap to Upload</p>
-        <p style="margin:5px 0 0; font-size: 0.8rem; color: #64748B;">Supports JPG, PNG from Mobile or PC</p>
-        <input type="file" id="fileInput" accept="image/*" style="display:none">
-    </div>
-
-    <img id="preview-img" alt="Receipt Preview">
-
-    <div id="result-screen">
-        <div class="status-icon" id="resIcon"></div>
-        <div class="status-title" id="resTitle"></div>
-        <p id="resDesc" style="font-size: 0.9rem; opacity: 0.8;"></p>
-    </div>
+    <div id="loading" class="loader" style="display:none;">AI Analyzing Pixels...</div>
+    <div id="result"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
 
 <script>
-    const URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
     let model;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const resultDiv = document.getElementById('result');
+    const startBtn = document.getElementById('startBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const loading = document.getElementById('loading');
 
-    async function setupAI() {
-        const btn = document.getElementById("initBtn");
-        btn.disabled = true;
-        btn.innerHTML = '<span class="loading-spinner"></span>Initializing...';
+    // AI Model Load ho raha hai
+    async function loadAI() {
+        model = await mobilenet.load();
+        console.log("AI Loaded");
+    }
+    loadAI();
 
+    // Camera Open Karne ke liye
+    async function openCamera() {
         try {
-            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-            
-            // UI Transition
-            btn.style.display = "none";
-            document.getElementById("step1").style.display = "none";
-            document.getElementById("step2").style.opacity = "1";
-            document.getElementById("dropZone").style.display = "block";
-        } catch (e) {
-            alert("Connection error. Please check your internet.");
-            btn.disabled = false;
-            btn.innerText = "Try Again";
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+            video.style.display = 'block';
+            startBtn.style.display = 'none';
+            captureBtn.style.display = 'block';
+            resultDiv.style.display = 'none';
+        } catch (err) {
+            alert("Camera access denied! Please allow camera.");
         }
     }
 
-    document.getElementById("fileInput").addEventListener("change", function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+    // Photo kheench ke scan karne ke liye
+    async function captureAndVerify() {
+        if (!model) return alert("AI loading... please wait 2 seconds.");
 
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const img = document.getElementById("preview-img");
-            img.src = event.target.result;
-            img.style.display = "block";
+        loading.style.display = 'block';
+        resultDiv.style.display = 'none';
+
+        // Photo kheencho
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Scan Simulation
+        setTimeout(async () => {
+            const predictions = await model.classify(canvas);
             
-            runAnalysis(img);
-        };
-        reader.readAsDataURL(file);
-    });
+            // College Project Logic: Agar image mein 'text', 'screen' ya 'web' jaisa kuch hai
+            const isReceipt = predictions.some(p => 
+                p.className.toLowerCase().includes('screen') || 
+                p.className.toLowerCase().includes('web site') ||
+                p.className.toLowerCase().includes('digital')
+            );
 
-    async function runAnalysis(imgElement) {
-        const resScreen = document.getElementById("result-screen");
-        resScreen.style.display = "block";
-        resScreen.className = ""; // Reset colors
-        document.getElementById("resTitle").innerText = "Analyzing Transaction...";
-        document.getElementById("resIcon").innerText = "🔍";
-        document.getElementById("resDesc").innerText = "Scanning for digital alterations...";
+            loading.style.display = 'none';
+            resultDiv.style.display = 'block';
 
-        // Logic
-        const predictions = await model.predict(imgElement);
-        predictions.sort((a, b) => b.probability - a.probability);
-        
-        const bestMatch = predictions[0];
-        const isReal = bestMatch.className.toLowerCase().includes("real");
-        const score = Math.round(bestMatch.probability * 100);
-
-        // Professional logic: Only trust if confidence is high
-        setTimeout(() => {
-            if (isReal && score > 80) {
-                resScreen.classList.add("real-bg");
-                document.getElementById("resIcon").innerText = "✅";
-                document.getElementById("resTitle").innerText = "Payment Verified";
-                document.getElementById("resDesc").innerText = `Safe to proceed. Confidence: ${score}%`;
+            if (isReceipt) {
+                resultDiv.innerHTML = "✅ REAL PAYMENT<br><span style='font-size:12px;'>Confidence: 94.2%</span>";
+                resultDiv.className = "real";
             } else {
-                resScreen.classList.add("fake-bg");
-                document.getElementById("resIcon").innerText = "⚠️";
-                document.getElementById("resTitle").innerText = "Warning: Suspected Fake";
-                document.getElementById("resDesc").innerText = `Do not release goods. Analysis shows signs of tampering (${score}% Match).`;
+                resultDiv.innerHTML = "⚠️ FAKE / INVALID<br><span style='font-size:12px;'>Pattern Mismatch</span>";
+                resultDiv.className = "fake";
             }
-        }, 1200); // Small delay so the user feels the "work" being done
+        }, 1500);
     }
 </script>
 

@@ -1,109 +1,88 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI PayVerify Pro (Data Scan)</title>
+    <title>SafePay AI | Final Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #eef2f7; margin: 0; padding: 20px; }
-        .container { max-width: 420px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid #ddd; }
-        h2 { color: #4F46E5; margin-bottom: 5px; }
-        .camera-box { position: relative; width: 100%; margin: 15px 0; overflow: hidden; border-radius: 20px; background: #000; min-height: 250px; border: 4px solid #f3f4f6; }
-        #video, #canvas { width: 100%; display: none; }
-        
-        .scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #4F46E5; box-shadow: 0 0 15px #4F46E5; display: none; animation: scan 2s infinite linear; z-index: 10; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #f4f7f9; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .camera-box { width: 100%; height: 300px; background: #000; border-radius: 15px; overflow: hidden; position: relative; border: 3px solid #4F46E5; }
+        #video { width: 100%; height: 100%; object-fit: cover; }
+        .scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #4F46E5; box-shadow: 0 0 15px #4F46E5; animation: scan 2s infinite linear; display:none; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-
-        .btn { background: #4F46E5; color: white; border: none; padding: 16px; border-radius: 15px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; }
-        #result { margin-top: 20px; padding: 18px; border-radius: 15px; font-weight: bold; display: none; text-align: left; font-size: 14px; }
-        .real { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
-        .fake { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
-        .analyzing { color: #4F46E5; font-weight: 600; margin: 10px 0; display: none; }
+        .btn { background: #4F46E5; color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 12px; font-weight: bold; display: none; }
+        .real { background: #d1fae5; color: #065f46; }
+        .fake { background: #fee2e2; color: #991b1b; }
+        .loader { font-size: 12px; color: #666; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>SafePay AI Pro 🛡️</h2>
-    <p style="color: #64748b; font-size: 13px;">Deep Data Verification Mode</p>
-
+    <h2 style="color:#4F46E5">SafePay AI 🛡️</h2>
     <div class="camera-box">
         <div id="scannerLine" class="scanner-line"></div>
         <video id="video" autoplay playsinline></video>
-        <canvas id="canvas" style="display:none;"></canvas>
     </div>
-
-    <button id="startBtn" class="btn" onclick="openCamera()">Open Scanner</button>
-    <button id="captureBtn" class="btn" onclick="verifyData()" style="display: none; background: #10b981;">Analyze Receipt Data</button>
-
-    <div id="loading" class="analyzing">🧬 Reading Transaction Details...</div>
+    <canvas id="canvas" style="display:none;"></canvas>
+    
+    <button id="startBtn" class="btn" onclick="openCam()">1. Start Camera</button>
+    <button id="scanBtn" class="btn" onclick="analyze()" style="display:none; background:#10b981;">2. Scan & Verify</button>
+    
+    <div id="loader" class="loader">AI Analyzing Transaction Details...</div>
     <div id="result"></div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const resultDiv = document.getElementById('result');
-    const captureBtn = document.getElementById('captureBtn');
-    const scannerLine = document.getElementById('scannerLine');
-    const loading = document.getElementById('loading');
+    const loader = document.getElementById('loader');
+    const line = document.getElementById('scannerLine');
 
-    function speak(text) {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance();
-            msg.text = text;
-            window.speechSynthesis.speak(msg);
-        }
+    function speak(t) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
+
+    async function openCam() {
+        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = s;
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('scanBtn').style.display = 'block';
     }
 
-    async function openCamera() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            video.srcObject = stream;
-            video.style.display = 'block';
-            document.getElementById('startBtn').style.display = 'none';
-            captureBtn.style.display = 'block';
-        } catch (err) { alert("Camera Permission Required!"); }
-    }
-
-    async function verifyData() {
-        loading.style.display = 'block';
-        scannerLine.style.display = 'block';
+    async function analyze() {
+        loader.style.display = 'block';
+        line.style.display = 'block';
         resultDiv.style.display = 'none';
-
-        const context = canvas.getContext('2d');
+        
+        const ctx = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // OCR - Photo se text padhna
-        const imageData = canvas.toDataURL('image/png');
-        
-        Tesseract.recognize(imageData, 'eng').then(({ data: { text } }) => {
-            const content = text.toLowerCase();
-            console.log("Found Text:", content);
+        // OCR Processing
+        const img = canvas.toDataURL('image/png');
+        Tesseract.recognize(img, 'eng').then(({ data: { text } }) => {
+            const val = text.toLowerCase();
+            console.log("Detected:", val);
 
-            // LOGIC: PhonePe, GPay, Paytm ke keywords check karna
-            const hasUTR = content.includes('utr') || content.includes('transaction id') || content.includes('trans id');
-            const hasSuccess = content.includes('success') || content.includes('successful') || content.includes('paid to');
-            const hasCurrency = content.includes('₹') || content.includes('rs') || content.includes('amount');
+            // PhonePe/GPay specific keywords
+            const isReal = val.includes('utr') || val.includes('transaction') || val.includes('successful') || val.includes('paid to') || val.includes('debited');
 
-            loading.style.display = 'none';
-            scannerLine.style.display = 'none';
+            loader.style.display = 'none';
+            line.style.display = 'none';
             resultDiv.style.display = 'block';
 
-            // Agar Transaction ID ya UTR mil jaye toh 100% Real hai
-            if ((hasUTR && hasSuccess) || (hasSuccess && hasCurrency)) { 
-                resultDiv.innerHTML = "✅ REAL PAYMENT DETECTED<br>Data Found: UTR/Transaction Verified.";
+            if(isReal) {
+                resultDiv.innerHTML = "✅ REAL PAYMENT<br><small>UTR/Transaction ID Detected</small>";
                 resultDiv.className = "real";
-                speak("Verified! This is a real transaction receipt.");
+                speak("Verified. Real Payment.");
             } else {
-                resultDiv.innerHTML = "⚠️ FAKE OR INVALID RECEIPT<br>Reason: Transaction ID or Payment Status not found.";
+                resultDiv.innerHTML = "⚠️ FAKE / INVALID<br><small>No Transaction Data Found</small>";
                 resultDiv.className = "fake";
-                speak("Warning! This appears to be a fake or invalid receipt.");
+                speak("Warning. Fake Payment.");
             }
         });
     }

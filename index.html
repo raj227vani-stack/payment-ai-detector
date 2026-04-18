@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Payment Detector AI</title>
+
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        h1 { margin-bottom: 20px; font-size: 24px; }
+
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            background: #22c55e;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+
+        button:hover { background: #16a34a; }
+        button:disabled { background: #64748b; cursor: not-allowed; }
+
+        input[type="file"] {
+            margin: 20px 0;
+            display: block;
+            width: 100%;
+            color: #94a3b8;
+        }
+
+        #preview {
+            margin-top: 20px;
+            border-radius: 10px;
+            display: none; /* Hidden until image is uploaded */
+            max-width: 100%;
+            border: 2px solid #334155;
+        }
+
+        #result {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #0f172a;
+        }
+
+        .real { color: #4ade80; border: 1px solid #4ade80; }
+        .fake { color: #f87171; border: 1px solid #f87171; }
+        .loading { color: #fbbf24; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>💸 Payment Verifier AI</h1>
+
+    <button id="startBtn" onclick="startAI()">1. Load AI Model</button>
+
+    <br>
+
+    <input type="file" id="imageUpload" accept="image/*">
+
+    <img id="preview" width="300" alt="Preview"/>
+
+    <div id="result">Status: Waiting for AI...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+
+<script>
+    // Note: Ensure this URL is correct and public
+    const MODEL_URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
+
+    let model;
+    const resultDiv = document.getElementById("result");
+    const previewImg = document.getElementById("preview");
+    const startBtn = document.getElementById("startBtn");
+
+    // Load the model
+    async function startAI() {
+        try {
+            resultDiv.innerText = "⌛ Loading Model... Please wait.";
+            resultDiv.className = "loading";
+            
+            // Load model and metadata
+            model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+            
+            resultDiv.innerText = "AI Ready ✅ Upload a screenshot.";
+            resultDiv.className = "";
+            startBtn.disabled = true;
+            startBtn.innerText = "Model Loaded";
+        } catch (e) {
+            resultDiv.innerText = "❌ Error loading model. Check your URL.";
+            console.error(e);
+        }
+    }
+
+    // Handle Image Upload
+    document.getElementById("imageUpload").addEventListener("change", async function(event) {
+        if (!model) {
+            alert("Please click 'Load AI Model' first!");
+            this.value = ""; // Clear the input
+            return;
+        }
+
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Show preview
+        previewImg.src = window.URL.createObjectURL(file);
+        previewImg.style.display = "inline-block";
+
+        resultDiv.innerText = "Analyzing... 🔍";
+        resultDiv.className = "loading";
+
+        // Wait for image to load before predicting
+        previewImg.onload = async function () {
+            const predictions = await model.predict(previewImg);
+
+            // Sort predictions to find the highest probability
+            predictions.sort((a, b) => b.probability - a.probability);
+            
+            const topResult = predictions[0];
+            const confidence = (topResult.probability * 100).toFixed(1);
+            const label = topResult.className.toLowerCase();
+
+            if (label.includes("real")) {
+                resultDiv.innerText = "✅ Result: REAL PAYMENT (" + confidence + "%)";
+                resultDiv.className = "real";
+            } else {
+                resultDiv.innerText = "⚠️ Result: FAKE PAYMENT (" + confidence + "%)";
+                resultDiv.className = "fake";
+            }
+
+            console.log("Full Predictions:", predictions);
+        };
+    });
+</script>
+
+</body>
+</html>

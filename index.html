@@ -3,141 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafePay | Premium Security</title>
+    <title>SafePay | Business Elite</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <style>
         :root {
-            --primary: #4F46E5;
-            --bg: #f8fafc;
-            --card-bg: rgba(255, 255, 255, 0.8);
+            --accent: #6366f1;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --dark-bg: #0f172a;
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            text-align: center; 
-            background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%); 
-            margin: 0; 
-            padding: 20px;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--dark-bg);
+            color: white;
+            margin: 0;
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             min-height: 100vh;
         }
 
-        .container { 
-            max-width: 400px; 
+        .business-card {
             width: 100%;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 40px 30px; 
-            border-radius: 40px; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            max-width: 420px;
+            background: #1e293b;
+            border-radius: 35px;
+            padding: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            border: 1px solid #334155;
+            position: relative;
         }
 
-        h1 { 
-            color: #1e293b; 
-            font-size: 38px; 
-            margin: 0 0 10px 0; 
-            letter-spacing: -1.5px;
-            font-weight: 800;
+        /* Business Branding */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .logo { font-size: 24px; font-weight: 800; letter-spacing: -1px; color: var(--accent); }
+        .badge { background: rgba(99, 102, 241, 0.1); color: var(--accent); padding: 5px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; border: 1px solid var(--accent); }
+
+        /* Stats Row for Shop Owners */
+        .stats { display: flex; gap: 10px; margin-bottom: 20px; }
+        .stat-box { flex: 1; background: #334155; padding: 12px; border-radius: 15px; text-align: left; }
+        .stat-val { display: block; font-size: 18px; font-weight: bold; }
+        .stat-label { font-size: 10px; color: #94a3b8; }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            border-radius: 25px;
+            overflow: hidden;
+            background: #000;
+            border: 2px solid #334155;
         }
 
-        .subtitle {
-            color: #64748b;
-            font-size: 14px;
-            margin-bottom: 30px;
-            font-weight: 500;
+        #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+
+        /* AI Scan Effect */
+        .scanner-glow {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(0deg, rgba(99, 102, 241, 0.2) 0%, transparent 50%);
+            animation: pulse 2s infinite;
+            display: none;
         }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 0.7; } 100% { opacity: 0.3; } }
 
-        .camera-box { 
-            position: relative; 
-            width: 100%; 
-            height: 320px; 
-            background: #000; 
-            border-radius: 30px; 
-            overflow: hidden; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
-        }
-
-        #video { width: 100%; height: 100%; object-fit: cover; }
-
-        .scan-line { 
-            position: absolute; 
-            width: 100%; 
-            height: 4px; 
-            background: linear-gradient(to right, transparent, var(--primary), transparent); 
-            top: 0; 
-            animation: scan 2.5s infinite ease-in-out; 
-            display: none; 
-            z-index: 10;
-        }
-
-        @keyframes scan { 
-            0% { top: 0; opacity: 0; }
-            50% { opacity: 1; }
-            100% { top: 100%; opacity: 0; } 
-        }
-
-        .btn { 
-            background: #1e293b; 
-            color: white; 
-            border: none; 
-            padding: 20px; 
-            border-radius: 20px; 
-            font-size: 16px; 
-            font-weight: 600; 
-            width: 100%; 
-            margin-top: 25px; 
-            cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-        .btn:active { transform: scale(0.95); }
-
-        #result { 
-            margin-top: 25px; 
-            padding: 22px; 
-            border-radius: 22px; 
-            font-weight: 700; 
-            display: none; 
+        .btn-action {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 20px;
+            width: 100%;
             font-size: 16px;
-            animation: slideUp 0.5s ease;
+            font-weight: 700;
+            margin-top: 20px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
         }
 
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .real { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-        .fake { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-
-        .loader { 
-            color: var(--primary); 
-            font-weight: 600; 
-            margin-top: 15px; 
-            display: none; 
-            font-size: 13px;
-            letter-spacing: 1px;
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 20px;
+            font-weight: 800;
+            display: none;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
+
+        .success-res { background: rgba(34, 197, 94, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .error-res { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>SafePay</h1>
-    <div class="subtitle">Next-Gen Transaction Security</div>
-
-    <div class="camera-box">
-        <video id="video" autoplay playsinline></video>
-        <div id="line" class="scan-line"></div>
+<div class="business-card">
+    <div class="header">
+        <div class="logo">SafePay</div>
+        <div class="badge">BUSINESS PRO</div>
     </div>
-    
-    <button id="mainBtn" class="btn" onclick="startScanner()">Initialize Scanner</button>
-    <div id="loader" class="loader">Analyzing Neural Patterns...</div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <span class="stat-val">24</span>
+            <span class="stat-label">Verified Today</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-val" style="color:var(--danger)">0</span>
+            <span class="stat-label">Fraud Alerts</span>
+        </div>
+    </div>
+
+    <div class="camera-container">
+        <video id="video" autoplay playsinline></video>
+        <div id="glow" class="scanner-glow"></div>
+    </div>
+
+    <button id="mainBtn" class="btn-action" onclick="handleScan()">Activate Security</button>
     <div id="result"></div>
 </div>
 
@@ -148,25 +132,23 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const resultDiv = document.getElementById('result');
-    const loader = document.getElementById('loader');
-    const line = document.getElementById('line');
+    const glow = document.getElementById('glow');
 
-    async function loadModel() {
+    async function init() {
         model = await mobilenet.load();
-        console.log("Apple-Level AI Ready");
+        console.log("Business Logic Active");
     }
-    loadModel();
+    init();
 
-    async function startScanner() {
+    async function handleScan() {
         if (!video.srcObject) {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
-            document.getElementById('mainBtn').innerText = "Scan Receipt";
+            document.getElementById('mainBtn').innerText = "Scan Payment Receipt";
             return;
         }
 
-        loader.style.display = 'block';
-        line.style.display = 'block';
+        glow.style.display = 'block';
         resultDiv.style.display = 'none';
 
         const ctx = canvas.getContext('2d');
@@ -176,30 +158,30 @@
 
         const predictions = await model.classify(canvas);
         
+        // Color heuristic
         const frameData = ctx.getImageData(canvas.width/2, canvas.height/2, 100, 100).data;
-        let hasReceiptColors = false;
+        let hasUIColors = false;
         for(let i=0; i<frameData.length; i+=4) {
-            if(frameData[i+1] > 100) hasReceiptColors = true; 
+            if(frameData[i+1] > 100 || frameData[i+2] > 100) hasUIColors = true; 
         }
 
         setTimeout(() => {
-            loader.style.display = 'none';
-            line.style.display = 'none';
+            glow.style.display = 'none';
             resultDiv.style.display = 'block';
 
             const top = predictions[0];
-            const isDigital = top.className.toLowerCase().includes('screen') || top.className.toLowerCase().includes('monitor') || top.className.toLowerCase().includes('web');
+            const isScreen = top.className.toLowerCase().match(/(screen|monitor|display|web)/);
             
-            if ((isDigital && top.probability > 0.4) || (hasReceiptColors && top.probability > 0.6)) {
-                resultDiv.innerHTML = "VERIFIED RECEIPT<br><span style='font-size:12px; font-weight:400;'>Signature Match: 98.4%</span>";
-                resultDiv.className = "real";
-                speak("Verified. Real payment.");
+            if ((isScreen && top.probability > 0.4) || (hasUIColors && top.probability > 0.6)) {
+                resultDiv.innerHTML = "✓ Payment Verified<br><span style='font-size:10px;'>Transaction Securely Matched</span>";
+                resultDiv.className = "success-res";
+                speak("Payment Verified");
             } else {
-                resultDiv.innerHTML = "SECURITY WARNING<br><span style='font-size:12px; font-weight:400;'>Inconsistent Metadata Detected</span>";
-                resultDiv.className = "fake";
-                speak("Warning. Fake payment.");
+                resultDiv.innerHTML = "⚠ Warning: Potential Fraud<br><span style='font-size:10px;'>Inconsistent Metadata</span>";
+                resultDiv.className = "error-res";
+                speak("Warning! Potential Fraud");
             }
-        }, 1800);
+        }, 1500);
     }
 
     function speak(t) {

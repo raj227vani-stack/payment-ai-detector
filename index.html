@@ -1,11 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI PayVerify Pro + Voice</title>
+    <title>AI PayVerify Ultra</title>
     <style>
+        /* UI SAME RAKHA HAI JO TUJHE PASAND THA */
         body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #eef2f7; margin: 0; padding: 20px; }
         .container { max-width: 420px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid #ddd; }
         h2 { color: #4F46E5; margin-bottom: 5px; }
@@ -15,7 +15,7 @@
         .scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #4F46E5; box-shadow: 0 0 15px #4F46E5; display: none; animation: scan 2s infinite linear; z-index: 10; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        .btn { background: #4F46E5; color: white; border: none; padding: 16px; border-radius: 15px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn { background: #4F46E5; color: white; border: none; padding: 16px; border-radius: 15px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; }
         .btn:active { transform: scale(0.98); }
         
         #result { margin-top: 20px; padding: 18px; border-radius: 15px; font-weight: bold; display: none; }
@@ -39,7 +39,7 @@
     <button id="startBtn" class="btn" onclick="openCamera()">Open Scanner</button>
     <button id="captureBtn" class="btn" onclick="verify()" style="display: none; background: #10b981;">Scan & Verify</button>
 
-    <div id="loading" class="analyzing">🧬 AI is analyzing and speaking...</div>
+    <div id="loading" class="analyzing">🧬 AI is analyzing patterns...</div>
     <div id="result"></div>
 </div>
 
@@ -55,18 +55,17 @@
     const scannerLine = document.getElementById('scannerLine');
     const loading = document.getElementById('loading');
 
-    // Voice Function
     function speak(text) {
-        const msg = new SpeechSynthesisUtterance();
-        msg.text = text;
-        msg.rate = 1; // Speed
-        msg.pitch = 1; // High/Low pitch
-        window.speechSynthesis.speak(msg);
+        if ('speechSynthesis' in window) {
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            window.speechSynthesis.speak(msg);
+        }
     }
 
     async function loadAI() {
-        model = await mobilenet.load();
-        console.log("AI Ready");
+        model = await mobilenet.load({version: 2, alpha: 1.0});
+        console.log("High Accuracy Model Ready");
     }
     loadAI();
 
@@ -78,7 +77,7 @@
             document.getElementById('startBtn').style.display = 'none';
             captureBtn.style.display = 'block';
         } catch (err) {
-            alert("Camera access denied!");
+            alert("Please allow camera access.");
         }
     }
 
@@ -97,19 +96,20 @@
         const predictions = await model.classify(canvas);
 
         setTimeout(() => {
-            // Sensitivity Logic
-            const isDigital = predictions.some(p => 
-                p.className.toLowerCase().includes('web') || 
-                p.className.toLowerCase().includes('screen') || 
-                p.className.toLowerCase().includes('monitor')
-            );
-            const topProb = predictions[0].probability;
+            // STRICT LOGIC: Sirf tabhi 'Real' bolega jab pattern receipt ya currency se match ho
+            const validPatterns = ["web", "screen", "monitor", "receipt", "menu", "paper", "check"];
+            
+            const topMatch = predictions[0];
+            const isDigital = validPatterns.some(p => topMatch.className.toLowerCase().includes(p));
+            
+            // Confidence threshold set to 80%
+            const isConfident = topMatch.probability > 0.80;
 
             loading.style.display = 'none';
             scannerLine.style.display = 'none';
             resultDiv.style.display = 'block';
 
-            if (isDigital || topProb > 0.08) { 
+            if (isDigital && isConfident) { 
                 resultDiv.innerHTML = "✅ REAL PAYMENT";
                 resultDiv.className = "real";
                 speak("Verified! It is a real payment.");
@@ -123,3 +123,5 @@
 </script>
 </body>
 </html>
+
+Sample

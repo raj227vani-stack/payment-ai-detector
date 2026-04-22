@@ -1,56 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>AuthentiPay AI</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
 
 <style>
 body{
+    margin:0;
     font-family:system-ui;
+    background:#0f172a;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.container{
+    width:400px;
+    background:#1e293b;
+    padding:20px;
+    border-radius:15px;
     text-align:center;
-    background:#f1f5f9;
 }
 
 video{
-    width:300px;
-    margin-top:20px;
+    width:100%;
     border-radius:10px;
 }
 
 .result{
-    margin-top:20px;
-    font-size:20px;
-    font-weight:bold;
+    margin-top:10px;
+    padding:10px;
+    border-radius:10px;
 }
 
-.status{
-    font-size:13px;
-    color:gray;
+.real{background:#14532d;}
+.fake{background:#7f1d1d;}
+
+select{
+    margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
 <h2>AuthentiPay AI</h2>
+
+<select id="lang">
+<option value="en">English</option>
+<option value="hi">Hindi</option>
+</select>
 
 <video id="video" autoplay></video>
 
-<div class="status">Stabilizing AI detection...</div>
-<div class="result" id="result">Loading...</div>
+<div id="result" class="result">Initializing...</div>
+
+</div>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 let model;
 let video=document.getElementById('video');
-let result=document.getElementById('result');
 let canvas=document.getElementById('canvas');
+let resultDiv=document.getElementById('result');
+let langSelect=document.getElementById('lang');
 
-// 🔥 Stability buffer
+// 🔥 STABILITY BUFFER
 let buffer=[];
 
 async function init(){
@@ -59,46 +83,83 @@ async function init(){
     const stream=await navigator.mediaDevices.getUserMedia({video:true});
     video.srcObject=stream;
 
-    scan();
+    scanLoop();
 }
 init();
 
-function scan(){
-    setInterval(async ()=>{
-
-        if(video.readyState!==4) return;
-
-        const ctx=canvas.getContext('2d');
-        canvas.width=video.videoWidth;
-        canvas.height=video.videoHeight;
-        ctx.drawImage(video,0,0);
-
-        const predictions=await model.classify(canvas);
-        let prob=predictions[0].probability;
-
-        // 🧠 Store last 5 results
-        buffer.push(prob);
-        if(buffer.length>5){
-            buffer.shift();
-        }
-
-        // 📊 Average calculation
-        let avg=buffer.reduce((a,b)=>a+b,0)/buffer.length;
-
-        updateResult(avg);
-
-    },1200); // fast + stable
+function scanLoop(){
+    setInterval(scan,2000);
 }
 
-function updateResult(prob){
+async function scan(){
+
+    if(video.readyState!==4) return;
+
+    const ctx=canvas.getContext('2d');
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    ctx.drawImage(video,0,0);
+
+    // 🔥 AI PART (replaceable in future)
+    const predictions=await model.classify(canvas);
+    let aiProb=predictions[0].probability;
+
+    // 🔥 OCR
+    const { data: { text } } = await Tesseract.recognize(canvas,'eng');
+
+    // 🔥 PATTERN CHECK
+    let pattern=0;
+    if(text.includes("@")) pattern++;
+    if(/\d{10,}/.test(text)) pattern++;
+    if(text.toLowerCase().includes("paid")) pattern++;
+
+    // 🔥 FINAL SCORE
+    let prob=(aiProb*0.6)+(pattern*0.1);
+
+    buffer.push(prob);
+    if(buffer.length>5) buffer.shift();
+
+    let finalProb=buffer.reduce((a,b)=>a+b,0)/buffer.length;
+
+    showResult(finalProb,text);
+}
+
+function showResult(prob,text){
 
     let confidence=Math.round(prob*100);
+    let lang=langSelect.value;
+
+    let upi=text.match(/\w+@\w+/);
+    let amount=text.match(/₹\d+/);
 
     if(prob>0.6){
-        result.innerText=`🟢 VERIFIED (${confidence}%)`;
+        resultDiv.className="result real";
+
+        resultDiv.innerHTML = lang==="hi"
+        ? `🟢 सफल भुगतान<br>विश्वास स्कोर: ${confidence}%`
+        : `🟢 VERIFIED<br>Trust Score: ${confidence}%`;
+
+        speak(lang==="hi"?"भुगतान सही है":"Payment verified");
+
     }else{
-        result.innerText=`🔴 SUSPICIOUS (${confidence}%)`;
+        resultDiv.className="result fake";
+
+        resultDiv.innerHTML = lang==="hi"
+        ? `🔴 नकली भुगतान<br>विश्वास स्कोर: ${confidence}%`
+        : `🔴 FAKE<br>Trust Score: ${confidence}%`;
+
+        speak(lang==="hi"?"यह नकली भुगतान है":"This is a fake payment");
     }
+
+    resultDiv.innerHTML += `
+    <br>Amount: ${amount?amount[0]:"N/A"}
+    <br>UPI: ${upi?upi[0]:"N/A"}
+    `;
+}
+
+function speak(text){
+    speechSynthesis.cancel();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 </script>
 

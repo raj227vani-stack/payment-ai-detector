@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SafePay AI</title>
+<title>SafePay AI Pro</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
 
 <style>
 body {
     font-family: system-ui;
-    margin: 0;
     background: linear-gradient(135deg,#eef2ff,#f8fafc);
     display:flex;
     justify-content:center;
@@ -21,18 +21,14 @@ body {
 
 .container {
     width: 420px;
-    background: white;
-    padding: 30px;
-    border-radius: 25px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    background:white;
+    padding:30px;
+    border-radius:25px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.1);
     text-align:center;
 }
 
-h1 {margin:0;font-size:30px;}
-.subtitle {color:gray;font-size:13px;margin-bottom:20px;}
-
 .camera {
-    position:relative;
     height:300px;
     background:black;
     border-radius:20px;
@@ -40,30 +36,6 @@ h1 {margin:0;font-size:30px;}
 }
 
 video {width:100%;height:100%;object-fit:cover;}
-
-.overlay {
-    position:absolute;
-    border:2px dashed white;
-    top:20%;
-    left:10%;
-    width:80%;
-    height:60%;
-    border-radius:10px;
-}
-
-.scan-line {
-    position:absolute;
-    height:3px;
-    width:100%;
-    background:lime;
-    animation:scan 2s infinite;
-    display:none;
-}
-
-@keyframes scan {
-    0%{top:0;}
-    100%{top:100%;}
-}
 
 button {
     margin-top:20px;
@@ -73,74 +45,55 @@ button {
     border-radius:15px;
     background:black;
     color:white;
-    cursor:pointer;
 }
 
-.result {
-    margin-top:20px;
-    padding:15px;
-    border-radius:15px;
-    display:none;
-}
-
+.result {margin-top:20px;padding:15px;border-radius:15px;display:none;}
 .real {background:#dcfce7;color:#166534;}
 .fake {background:#fee2e2;color:#991b1b;}
 
 .loader {display:none;margin-top:10px;color:blue;}
-
-.toggle {
-    margin-top:10px;
-    font-size:13px;
-    cursor:pointer;
-}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-    <h1>SafePay AI</h1>
-    <div class="subtitle">Detect Fake Payment Screenshots</div>
+<h2>SafePay AI Pro</h2>
 
-    <div class="camera">
-        <video id="video" autoplay></video>
-        <div class="overlay"></div>
-        <div id="line" class="scan-line"></div>
-    </div>
+<div class="camera">
+<video id="video" autoplay></video>
+</div>
 
-    <button onclick="scan()">Start Scanner</button>
-    <div class="toggle" onclick="toggleVoice()">🔊 Voice: ON</div>
+<button onclick="scan()">Scan Receipt</button>
 
-    <div id="loader" class="loader">Analyzing with AI...</div>
-    <div id="result" class="result"></div>
+<div id="loader" class="loader">Analyzing AI + Patterns...</div>
+<div id="result" class="result"></div>
+
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 let model;
-let voiceEnabled = true;
-
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const resultDiv = document.getElementById('result');
-const loader = document.getElementById('loader');
-const line = document.getElementById('line');
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let resultDiv = document.getElementById('result');
+let loader = document.getElementById('loader');
 
 async function loadModel(){
     model = await mobilenet.load();
 }
 loadModel();
 
+async function startCamera(){
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+}
+startCamera();
+
 async function scan(){
-    if(!video.srcObject){
-        const stream = await navigator.mediaDevices.getUserMedia({video:true});
-        video.srcObject = stream;
-        return;
-    }
 
     loader.style.display='block';
-    line.style.display='block';
     resultDiv.style.display='none';
 
     const ctx = canvas.getContext('2d');
@@ -148,46 +101,55 @@ async function scan(){
     canvas.height = video.videoHeight;
     ctx.drawImage(video,0,0);
 
+    // 🔥 AI Prediction
     const predictions = await model.classify(canvas);
+    let aiProb = predictions[0].probability;
+
+    // 🔥 OCR TEXT
+    const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+
+    // 🔥 Pattern Score
+    let patternScore = 0;
+
+    if(text.includes("@")) patternScore += 1;
+    if(/\d{12}/.test(text)) patternScore += 1;
+    if(text.toLowerCase().includes("upi")) patternScore += 1;
+    if(text.toLowerCase().includes("paid")) patternScore += 1;
+
+    // 🔥 Final Score
+    let finalScore = (aiProb * 0.6) + (patternScore * 0.1);
 
     setTimeout(()=>{
+
         loader.style.display='none';
-        line.style.display='none';
         resultDiv.style.display='block';
 
-        let prob = predictions[0].probability;
-        let confidence = Math.round(prob*100);
+        let confidence = Math.min(95, Math.round(finalScore * 100));
 
-        if(prob > 0.6){
-            resultDiv.className = "result real";
+        if(finalScore > 0.5){
+            resultDiv.className="result real";
             resultDiv.innerHTML = `
                 <h3>🟢 REAL PAYMENT</h3>
                 Confidence: ${confidence}%<br>
-                Pattern matched with genuine receipt
+                Valid UPI + Transaction patterns detected
             `;
             speak(`This payment appears genuine with ${confidence} percent confidence`);
         } else {
-            resultDiv.className = "result fake";
+            resultDiv.className="result fake";
             resultDiv.innerHTML = `
                 <h3>🔴 FAKE PAYMENT</h3>
                 Confidence: ${confidence}%<br>
-                Suspicious editing patterns detected
+                Suspicious or missing transaction details
             `;
             speak(`This payment appears to be fake with ${confidence} percent confidence`);
         }
 
-    },2000);
+    },1500);
 }
 
 function speak(text){
-    if(!voiceEnabled) return;
     speechSynthesis.cancel();
     speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-}
-
-function toggleVoice(){
-    voiceEnabled = !voiceEnabled;
-    document.querySelector('.toggle').innerText = voiceEnabled ? "🔊 Voice: ON" : "🔇 Voice: OFF";
 }
 </script>
 

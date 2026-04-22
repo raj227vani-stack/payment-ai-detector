@@ -23,6 +23,12 @@ video{
 .result{
     margin-top:20px;
     font-size:20px;
+    font-weight:bold;
+}
+
+.status{
+    font-size:13px;
+    color:gray;
 }
 </style>
 </head>
@@ -32,6 +38,8 @@ video{
 <h2>AuthentiPay AI</h2>
 
 <video id="video" autoplay></video>
+
+<div class="status">Stabilizing AI detection...</div>
 <div class="result" id="result">Loading...</div>
 
 <canvas id="canvas" style="display:none;"></canvas>
@@ -41,6 +49,9 @@ let model;
 let video=document.getElementById('video');
 let result=document.getElementById('result');
 let canvas=document.getElementById('canvas');
+
+// 🔥 Stability buffer
+let buffer=[];
 
 async function init(){
     model=await mobilenet.load();
@@ -65,13 +76,29 @@ function scan(){
         const predictions=await model.classify(canvas);
         let prob=predictions[0].probability;
 
-        if(prob>0.6){
-            result.innerText="🟢 VERIFIED";
-        }else{
-            result.innerText="🔴 SUSPICIOUS";
+        // 🧠 Store last 5 results
+        buffer.push(prob);
+        if(buffer.length>5){
+            buffer.shift();
         }
 
-    },1500);
+        // 📊 Average calculation
+        let avg=buffer.reduce((a,b)=>a+b,0)/buffer.length;
+
+        updateResult(avg);
+
+    },1200); // fast + stable
+}
+
+function updateResult(prob){
+
+    let confidence=Math.round(prob*100);
+
+    if(prob>0.6){
+        result.innerText=`🟢 VERIFIED (${confidence}%)`;
+    }else{
+        result.innerText=`🔴 SUSPICIOUS (${confidence}%)`;
+    }
 }
 </script>
 

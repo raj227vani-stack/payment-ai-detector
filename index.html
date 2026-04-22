@@ -2,173 +2,144 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafePay AI | Secure Neural Engine</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-
     <style>
-        :root { --neon: #00ff88; --bg: #030712; --panel: #111827; }
-        body { 
-            margin: 0; background: var(--bg); color: #f3f4f6; 
-            font-family: 'Inter', sans-serif; display: flex; 
-            justify-content: center; align-items: center; min-height: 100vh;
-        }
-        .container {
-            width: 90%; max-width: 440px; background: var(--panel); 
-            padding: 25px; border-radius: 24px; border: 1px solid rgba(0,255,136,0.2);
-            box-shadow: 0 0 50px rgba(0,0,0,0.8); text-align: center;
-        }
-        .monitor {
-            width: 100%; height: 300px; background: #000; border-radius: 16px;
-            margin: 20px 0; overflow: hidden; position: relative; border: 2px solid #1f2937;
-        }
-        video, img { width: 100%; height: 100%; object-fit: contain; display: none; }
-        
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn {
-            padding: 15px; border-radius: 12px; border: none; font-weight: 700;
-            cursor: pointer; transition: 0.2s; font-size: 14px; text-transform: uppercase;
-        }
-        .btn-p { background: var(--neon); color: #000; }
+        :root { --p: #00ff88; --r: #ff4444; --b: #05070a; }
+        body { margin: 0; background: var(--b); color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { width: 420px; background: #111827; padding: 25px; border-radius: 28px; border: 1px solid rgba(0,255,136,0.1); text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .view-screen { width: 100%; height: 350px; background: #000; border-radius: 20px; margin: 20px 0; overflow: hidden; position: relative; border: 2px solid #1f2937; }
+        video, img { width: 100%; height: 100%; object-fit: contain; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn { padding: 16px; border-radius: 14px; border: none; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+        .btn-p { background: var(--p); color: #000; }
         .btn-s { background: #374151; color: #fff; }
-
-        .result-box {
-            margin-top: 20px; padding: 20px; border-radius: 16px; 
-            background: rgba(0,0,0,0.4); display: none; border: 1px solid #1f2937;
-        }
-        #verdict { font-size: 22px; font-weight: 900; letter-spacing: 1px; }
-        .stats { font-size: 11px; color: #9ca3af; margin-top: 5px; }
-        
-        .data-table {
-            width: 100%; margin-top: 15px; font-size: 12px; border-top: 1px solid #1f2937;
-            padding-top: 10px; text-align: left;
-        }
-        .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
-        .val { color: var(--neon); font-weight: 600; }
+        .btn:active { transform: scale(0.95); }
+        #res-box { margin-top: 20px; padding: 20px; border-radius: 18px; display: none; background: rgba(0,0,0,0.4); border: 1px solid #1f2937; }
+        #v-text { font-size: 24px; font-weight: 900; margin-bottom: 5px; }
+        .meta { text-align: left; font-size: 13px; margin-top: 12px; border-top: 1px solid #1f2937; padding-top: 10px; color: #9ca3af; }
+        .val { color: white; font-weight: 600; float: right; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div style="text-align: left; margin-bottom: 15px;">
-        <h2 style="margin:0; color:var(--neon);">SafePay AI</h2>
-        <span style="font-size:10px; color:#6b7280;">B.Tech AIML Project | Deployment Version</span>
+<div class="card">
+    <div style="text-align: left;">
+        <h1 style="color:var(--p); margin:0; font-size: 24px;">SafePay AI</h1>
+        <p style="font-size:10px; color:#4b5563; text-transform: uppercase;">Final Deployment Version 4.0</p>
     </div>
 
-    <div class="monitor">
-        <video id="v" autoplay playsinline></video>
-        <img id="i" src="">
-        <div id="loader" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#374151;">System Ready</div>
+    <div class="view-screen">
+        <video id="vid" autoplay playsinline style="display:none;"></video>
+        <img id="u-img" style="display:none;">
+        <div id="ld" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#1f2937; font-weight: bold;">LOADING AI CORE...</div>
     </div>
 
-    <div class="controls">
-        <button class="btn btn-p" onclick="startLive()">Live Scan</button>
-        <button class="btn btn-s" onclick="document.getElementById('f').click()">Upload</button>
-        <input type="file" id="f" hidden accept="image/*" onchange="loadImg(event)">
+    <div class="btn-group">
+        <button class="btn btn-p" onclick="openCam()">Live Scan</button>
+        <button class="btn btn-s" onclick="document.getElementById('f-up').click()">Upload</button>
+        <input type="file" id="f-up" hidden accept="image/*" onchange="autoScanFile(event)">
     </div>
 
-    <div id="res" class="result-box">
-        <div id="verdict">ANALYZING...</div>
-        <div class="stats" id="accuracy">Confidence: 0%</div>
-        
-        <div class="data-table">
-            <div class="row"><span>Amount:</span> <span class="val" id="d-amt">--</span></div>
-            <div class="row"><span>UTR ID:</span> <span class="val" id="d-id">--</span></div>
-            <div class="row"><span>Status:</span> <span class="val" id="d-st">Pending</span></div>
+    <div id="res-box">
+        <div id="v-text">--</div>
+        <div id="conf" style="font-size:11px; color:#9ca3af;">Accuracy: 0%</div>
+        <div class="meta">
+            <div>Amount: <span class="val" id="d-amt">--</span></div>
+            <div style="margin-top:5px;">Ref ID: <span class="val" id="d-id">--</span></div>
         </div>
-    </div>
-
-    <div style="margin-top:15px; font-size:10px; color:#4b5563;">
-        <input type="checkbox" id="voice" checked> Audio Feedback Active
     </div>
 </div>
 
-<canvas id="c" style="display:none;"></canvas>
+<canvas id="proc" style="display:none;"></canvas>
 
 <script>
-    const URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
-    let model;
+    const MODEL_URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
+    let aiModel;
 
-    // Load AI Model on Start
-    async function loadModel() {
-        model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-        document.getElementById('loader').innerText = "AI Online";
+    // Load Model on Page Load
+    (async () => {
+        try {
+            aiModel = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+            document.getElementById('ld').innerText = "AI ONLINE";
+        } catch(e) { document.getElementById('ld').innerText = "ERROR LOADING MODEL"; }
+    })();
+
+    // 1. Live Scan Logic
+    async function openCam() {
+        const v = document.getElementById('vid');
+        const img = document.getElementById('u-img');
+        v.style.display="block"; img.style.display="none";
+        document.getElementById('ld').style.display="none";
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}});
+            v.srcObject = stream;
+            // Scan loop every 3 seconds for Live Mode
+            setInterval(() => { if(v.srcObject) engine(v); }, 3000);
+        } catch(e) { alert("Camera Permission Required!"); }
     }
-    loadModel();
 
-    async function startLive() {
-        const v = document.getElementById('v');
-        document.getElementById('loader').style.display = "none";
-        v.style.display = "block";
-        document.getElementById('i').style.display = "none";
-        
-        const s = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}});
-        v.srcObject = s;
-        
-        // Dynamic Loop: Fast enough but doesn't crash
-        setInterval(() => { if(v.srcObject) runAI(v); }, 2500);
-    }
+    // 2. **Auto Scan on Upload**
+    function autoScanFile(e) {
+        const file = e.target.files[0];
+        if(!file) return;
 
-    function loadImg(e) {
         const reader = new FileReader();
-        const img = document.getElementById('i');
-        document.getElementById('loader').style.display = "none";
-        img.style.display = "block";
-        document.getElementById('v').style.display = "none";
-        
+        const img = document.getElementById('u-img');
+        const v = document.getElementById('vid');
+        img.style.display="block"; v.style.display="none";
+        document.getElementById('ld').style.display="none";
+
         reader.onload = (f) => {
             img.src = f.target.result;
-            img.onload = () => runAI(img);
+            // Jaise hi image load ho, bina button dabaye scan trigger kar do
+            img.onload = () => engine(img);
         };
-        reader.readAsDataURL(e.target.files[0]);
+        reader.readAsDataURL(file);
     }
 
-    async function runAI(source) {
-        if(!model) return;
-        
-        // 1. Classification (Primary Decision Maker)
-        const pred = await model.predict(source);
+    // 3. **The Core Engine**
+    async function engine(source) {
+        if(!aiModel) return;
+
+        // Visual Prediction (Teachable Machine)
+        const pred = await aiModel.predict(source);
         const top = pred.sort((a,b) => b.probability - a.probability)[0];
+
+        // OCR Processing (For details only)
+        const can = document.getElementById('proc');
+        can.width = source.videoWidth || source.naturalWidth;
+        can.height = source.videoHeight || source.naturalHeight;
+        can.getContext('2d').drawImage(source, 0, 0);
         
-        // 2. OCR (Secondary Data Extraction)
-        const canvas = document.getElementById('c');
-        canvas.width = source.videoWidth || source.naturalWidth;
-        canvas.height = source.videoHeight || source.naturalHeight;
-        canvas.getContext('2d').drawImage(source, 0, 0);
-        
-        const ocr = await Tesseract.recognize(canvas, 'eng');
+        const ocr = await Tesseract.recognize(can, 'eng');
         const text = ocr.data.text.toLowerCase();
 
         updateUI(top, text);
     }
 
     function updateUI(top, text) {
-        const res = document.getElementById('res');
-        res.style.display = "block";
-        
+        const box = document.getElementById('res-box');
+        const verdict = document.getElementById('v-text');
+        box.style.display = "block";
+
         const isReal = top.className.toLowerCase().includes("real");
-        const conf = (top.probability * 100).toFixed(1);
+        const accuracy = (top.probability * 100).toFixed(1);
 
-        const v = document.getElementById('verdict');
-        v.innerText = isReal ? "AUTHENTIC" : "FAKE RECEIPT";
-        v.style.color = isReal ? "#00ff88" : "#ff4444";
-        document.getElementById('accuracy').innerText = `Neural Confidence: ${conf}%`;
-
-        // Extract Details
-        const amt = (text.match(/[₹rs]\s?\d+/i) || ["--"])[0];
-        const id = (text.match(/\d{10,12}/) || ["--"])[0];
+        verdict.innerText = isReal ? "AUTHENTIC" : "FRAUD DETECTED";
+        verdict.style.color = isReal ? "var(--p)" : "var(--r)";
+        box.style.borderColor = isReal ? "var(--p)" : "var(--r)";
         
-        document.getElementById('d-amt').innerText = amt.toUpperCase();
-        document.getElementById('d-id').innerText = id;
-        document.getElementById('d-st').innerText = isReal ? "Verified" : "Flagged";
+        document.getElementById('conf').innerText = `Neural Confidence: ${accuracy}%`;
+        document.getElementById('d-amt').innerText = (text.match(/[₹rs]\s?\d+/i) || ["N/A"])[0].toUpperCase();
+        document.getElementById('d-id').innerText = (text.match(/\d{10,12}/) || ["N/A"])[0];
 
-        if(document.getElementById('voice').checked) {
-            const speech = new SpeechSynthesisUtterance(isReal ? "Verified" : "Fraud Alert");
-            window.speechSynthesis.speak(speech);
-        }
+        // Voice Feedback
+        const speech = new SpeechSynthesisUtterance(isReal ? "Verified" : "Warning: Fraud Detected");
+        window.speechSynthesis.speak(speech);
     }
 </script>
 </body>

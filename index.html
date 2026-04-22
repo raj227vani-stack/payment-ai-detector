@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AuthentiPay AI</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
@@ -11,9 +10,9 @@
 
 <style>
 body{
-    margin:0;
     font-family:system-ui;
-    background:#f1f5f9;
+    background:#0f172a;
+    color:white;
     display:flex;
     justify-content:center;
     align-items:center;
@@ -22,55 +21,29 @@ body{
 
 .container{
     width:420px;
-    background:white;
+    background:#1e293b;
     padding:20px;
     border-radius:20px;
-    text-align:center;
 }
 
-button{
-    padding:12px;
-    border:none;
-    background:black;
-    color:white;
-    border-radius:10px;
-    margin-top:10px;
-    cursor:pointer;
-}
-
-.camera{
-    height:260px;
-    background:black;
-    border-radius:15px;
-    overflow:hidden;
-    position:relative;
-    margin-top:10px;
-}
-
-video{width:100%;height:100%;object-fit:cover;}
-
-.box{
-    position:absolute;
-    border:2px dashed lime;
-    width:80%;
-    height:60%;
-    top:20%;
-    left:10%;
-}
-
-.result{
-    margin-top:10px;
-    padding:10px;
+video{
+    width:100%;
     border-radius:10px;
 }
 
-.real{background:#dcfce7;color:#166534;}
-.fake{background:#fee2e2;color:#991b1b;}
+.report{
+    background:#111827;
+    margin-top:10px;
+    padding:15px;
+    border-radius:12px;
+    font-size:14px;
+}
 
-.status{
-    font-size:13px;
-    margin-top:5px;
-    color:gray;
+.real{color:#22c55e;}
+.fake{color:#ef4444;}
+
+.line{
+    margin:5px 0;
 }
 </style>
 </head>
@@ -80,15 +53,9 @@ video{width:100%;height:100%;object-fit:cover;}
 <div class="container">
 <h2>AuthentiPay AI</h2>
 
-<button onclick="startCamera()">Enable Camera</button>
-<div class="status" id="status">Camera not started</div>
+<video id="video" autoplay></video>
 
-<div class="camera">
-<video id="video" autoplay playsinline></video>
-<div class="box"></div>
-</div>
-
-<div id="result" class="result"></div>
+<div id="report" class="report">Initializing...</div>
 
 </div>
 
@@ -96,68 +63,115 @@ video{width:100%;height:100%;object-fit:cover;}
 
 <script>
 let model;
-let video = document.getElementById('video');
-let canvas = document.getElementById('canvas');
-let resultDiv = document.getElementById('result');
-let statusText = document.getElementById('status');
+let video=document.getElementById('video');
+let canvas=document.getElementById('canvas');
+let report=document.getElementById('report');
 
 let buffer=[];
 
-async function loadModel(){
-    statusText.innerText = "Loading AI model...";
-    model = await mobilenet.load();
-    statusText.innerText = "Click 'Enable Camera'";
+async function init(){
+    model=await mobilenet.load();
+    const stream=await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject=stream;
+    scanLoop();
 }
-loadModel();
+init();
 
-async function startCamera(){
-    try{
-        const stream = await navigator.mediaDevices.getUserMedia({video:true});
-        video.srcObject = stream;
-        statusText.innerText = "Camera active. Show receipt...";
-        autoScan();
-    }catch(err){
-        statusText.innerText = "❌ Camera permission denied!";
-    }
+function scanLoop(){
+    setInterval(scan,2000);
 }
 
-function autoScan(){
-    setInterval(async ()=>{
+async function scan(){
 
-        if(video.readyState !== 4) return;
+    if(video.readyState!==4) return;
 
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video,0,0);
+    const ctx=canvas.getContext('2d');
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    ctx.drawImage(video,0,0);
 
-        const predictions = await model.classify(canvas);
-        let prob = predictions[0].probability;
+    const predictions=await model.classify(canvas);
+    let aiProb=predictions[0].probability;
 
-        buffer.push(prob);
-        if(buffer.length>5) buffer.shift();
+    const { data: { text } } = await Tesseract.recognize(canvas,'eng');
 
-        let avg = buffer.reduce((a,b)=>a+b,0)/buffer.length;
+    let prob=(aiProb*0.7)+(patternScore(text)*0.1);
 
-        showResult(avg);
+    buffer.push(prob);
+    if(buffer.length>5) buffer.shift();
 
-    },1500);
+    let finalProb=buffer.reduce((a,b)=>a+b,0)/buffer.length;
+
+    generateReport(finalProb,text);
 }
 
-function showResult(prob){
-    let confidence = Math.round(prob*100);
+function patternScore(text){
+    let score=0;
+    if(text.includes("@")) score++;
+    if(/\d{12}/.test(text)) score++;
+    if(text.toLowerCase().includes("paid")) score++;
+    return score;
+}
+
+function detectApp(text){
+    text=text.toLowerCase();
+    if(text.includes("phonepe")) return "PhonePe";
+    if(text.includes("gpay")||text.includes("google pay")) return "GPay";
+    if(text.includes("paytm")) return "Paytm";
+    return "Unknown";
+}
+
+function extract(text){
+    let amount=text.match(/₹\d+/);
+    let upi=text.match(/\w+@\w+/);
+    let txn=text.match(/\d{10,}/);
+
+    return {
+        amount:amount?amount[0]:"N/A",
+        upi:upi?upi[0]:"N/A",
+        txn:txn?txn[0]:"N/A"
+    };
+}
+
+function generateReport(prob,text){
+
+    let confidence=Math.round(prob*100);
+    let risk=prob>0.7?"LOW":prob>0.5?"MEDIUM":"HIGH";
+
+    let data=extract(text);
+    let app=detectApp(text);
+    let time=new Date().toLocaleTimeString();
 
     if(prob>0.6){
-        resultDiv.className="result real";
-        resultDiv.innerHTML = `
-        🟢 VERIFIED<br>
-        Trust Score: ${confidence}%
+        report.innerHTML=`
+        <div class="real"><b>✔ VERIFIED TRANSACTION</b></div>
+
+        <div class="line">💰 Amount: ${data.amount}</div>
+        <div class="line">👤 To: ${data.upi}</div>
+        <div class="line">📱 App: ${app}</div>
+        <div class="line">🕒 Time: ${time}</div>
+        <div class="line">🆔 Txn ID: ${data.txn}</div>
+
+        <hr>
+
+        <div class="line">🧠 Trust Score: ${confidence}/100</div>
+        <div class="line">⚠ Risk Level: ${risk}</div>
         `;
-    }else{
-        resultDiv.className="result fake";
-        resultDiv.innerHTML = `
-        🔴 SUSPICIOUS<br>
-        Trust Score: ${confidence}%
+    } else {
+        report.innerHTML=`
+        <div class="fake"><b>⚠ FAKE TRANSACTION DETECTED</b></div>
+
+        <div class="line">💰 Amount: ${data.amount}</div>
+        <div class="line">👤 To: ${data.upi}</div>
+        <div class="line">📱 App: ${app}</div>
+        <div class="line">🕒 Time: ${time}</div>
+        <div class="line">🆔 Txn ID: ${data.txn}</div>
+
+        <hr>
+
+        <div class="line">🧠 Trust Score: ${confidence}/100</div>
+        <div class="line">⚠ Risk Level: ${risk}</div>
+        <div class="line">Reason: Missing or inconsistent data</div>
         `;
     }
 }

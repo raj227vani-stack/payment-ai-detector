@@ -3,149 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafePay AI | Neural Integrity</title>
+    <title>SafePay AI | Neural Integrity Engine</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
     <style>
-        :root { --main: #10b981; --err: #ff4d4d; --dark: #09090b; }
-        body { margin: 0; background: var(--dark); color: #fff; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .panel { width: 420px; background: #18181b; border: 1px solid #27272a; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .brand { border-bottom: 1px solid #27272a; padding-bottom: 15px; margin-bottom: 20px; }
-        .brand h2 { margin: 0; color: var(--main); font-size: 20px; }
-        .brand p { margin: 0; font-size: 10px; color: #71717a; text-transform: uppercase; }
+        :root {
+            --accent: #10b981;
+            --danger: #ef4444;
+            --bg: #09090b;
+            --panel: #18181b;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0; background: var(--bg); color: #fafafa;
+            font-family: 'Inter', -apple-system, sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        .container {
+            width: 440px; background: var(--panel); border: 1px solid var(--border);
+            border-radius: 24px; padding: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* Branding Section */
+        .brand { margin-bottom: 24px; }
+        .brand h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+        .brand p { margin: 4px 0 0; font-size: 10px; color: #71717a; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* The OpenAI Style Monitor */
+        .monitor {
+            width: 100%; height: 360px; background: #000; border-radius: 16px;
+            border: 1px solid var(--border); position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        video, #preview { width: 100%; height: 100%; object-fit: contain; display: none; }
         
-        .screen { width: 100%; height: 320px; background: #000; border-radius: 12px; margin-bottom: 20px; position: relative; overflow: hidden; border: 1px solid #27272a; }
-        video, #preview { width: 100%; height: 100%; object-fit: contain; }
-        
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { padding: 14px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 12px; }
-        .btn-l { background: var(--main); color: #000; }
-        .btn-u { background: #27272a; color: #fff; }
-        
-        #result-hud { margin-top: 20px; padding: 15px; border-radius: 12px; background: #000; display: none; border: 1px solid #27272a; border-left: 4px solid var(--main); }
-        #verdict { font-size: 20px; font-weight: 900; margin-bottom: 8px; }
-        .meta { font-size: 11px; color: #a1a1aa; display: flex; justify-content: space-between; margin-top: 5px; }
-        #status-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #3f3f46; font-size: 12px; }
+        .scan-line {
+            position: absolute; width: 100%; height: 2px; background: var(--accent);
+            top: 0; left: 0; box-shadow: 0 0 15px var(--accent);
+            animation: scan 3s infinite linear; display: none; z-index: 10;
+        }
+
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        /* Buttons */
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+        .btn {
+            padding: 14px; border-radius: 12px; border: 1px solid var(--border);
+            font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .btn-main { background: var(--accent); color: #000; border: none; }
+        .btn-sub { background: transparent; color: #fff; }
+        .btn:active { transform: scale(0.98); }
+
+        /* Premium Result HUD */
+        .result-hud {
+            margin-top: 24px; padding: 20px; border-radius: 16px;
+            background: #000; border-left: 4px solid var(--accent);
+            display: none; animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .v-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .item { font-size: 11px; color: #71717a; }
+        .item span { display: block; color: #fff; font-size: 13px; font-weight: 600; margin-top: 2px; }
+
+        #init-msg { font-size: 12px; color: #3f3f46; position: absolute; }
     </style>
 </head>
 <body>
 
-<div class="panel">
+<div class="container">
     <div class="brand">
-        <h2>SafePay AI</h2>
-        <p>B.Tech AIML | Unitedworld Institute of Technology</p>
+        <h1>SafePay AI</h1>
+        <p>B.TECH AIML | UNITEDWORLD INSTITUTE OF TECHNOLOGY</p>
     </div>
 
-    <div class="screen">
-        <video id="v" autoplay playsinline style="display:none;"></video>
-        <img id="p" style="display:none;">
-        <div id="status-msg">INITIALIZING NEURAL CORE...</div>
+    <div class="monitor" id="mon">
+        <video id="vid" autoplay playsinline></video>
+        <img id="preview" src="">
+        <div class="scan-line" id="line"></div>
+        <div id="init-msg">SYSTEM BOOTING...</div>
     </div>
 
-    <div class="btn-row">
-        <button class="btn btn-l" onclick="startCam()">LIVE SCAN</button>
-        <button class="btn btn-u" onclick="document.getElementById('f').click()">UPLOAD</button>
-        <input type="file" id="f" hidden accept="image/*" onchange="loadFile(event)">
+    <div class="action-btns">
+        <button class="btn btn-main" onclick="openCam()">LIVE FEED</button>
+        <button class="btn btn-sub" onclick="document.getElementById('f-up').click()">UPLOAD</button>
+        <input type="file" id="f-up" hidden accept="image/*" onchange="autoProcess(event)">
     </div>
 
-    <div id="result-hud">
-        <div id="verdict">PROCESSING...</div>
-        <div class="meta">Confidence: <span id="m-conf" style="color:white">0%</span></div>
-        <div class="meta">Amount: <span id="m-amt" style="color:white">--</span></div>
-        <div class="meta">Ref ID: <span id="m-id" style="color:white">--</span></div>
+    <div id="result-hud" class="result-hud">
+        <div id="v-status" class="v-title">ANALYZING...</div>
+        <div class="grid">
+            <div class="item">Neural Confidence <span id="r-conf">0%</span></div>
+            <div class="item">Detected App <span id="r-app">--</span></div>
+            <div class="item">Transaction Amt <span id="r-amt">--</span></div>
+            <div class="item">Ref Number <span id="r-id">--</span></div>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; font-size: 10px; color: #3f3f46; text-align: center;">
+        <input type="checkbox" id="voice-chk" checked> VOICE ASSISTANCE ACTIVE
     </div>
 </div>
 
-<canvas id="c" style="display:none;"></canvas>
+<canvas id="neural-c" style="display:none;"></canvas>
 
 <script>
-    const MODEL_PATH = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
-    let ai;
+    const MODEL_URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
+    let aiEngine;
 
-    // Load Model (Self-Executing)
-    (async function init() {
+    // Load Neural Core
+    (async () => {
         try {
-            ai = await tmImage.load(MODEL_PATH + "model.json", MODEL_PATH + "metadata.json");
-            document.getElementById('status-msg').innerText = "AI ONLINE";
-            document.getElementById('status-msg').style.color = "var(--main)";
+            aiEngine = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+            document.getElementById('init-msg').innerText = "AI ONLINE";
+            document.getElementById('init-msg').style.color = "var(--accent)";
         } catch(e) {
-            document.getElementById('status-msg').innerText = "CONNECTION ERROR";
+            document.getElementById('init-msg').innerText = "CORS ERROR: USE GITHUB PAGES";
         }
     })();
 
-    async function startCam() {
-        const video = document.getElementById('v');
-        const img = document.getElementById('p');
-        video.style.display="block"; img.style.display="none";
-        document.getElementById('status-msg').style.display="none";
+    async function openCam() {
+        const v = document.getElementById('vid');
+        const p = document.getElementById('preview');
+        v.style.display="block"; p.style.display="none";
+        document.getElementById('init-msg').style.display="none";
         
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}});
-            video.srcObject = stream;
-            // Scan every 4 seconds for Live
-            setInterval(() => { if(video.srcObject) runAI(video); }, 4000);
-        } catch(e) { alert("Camera Permission Required"); }
+            const s = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}});
+            v.srcObject = s;
+            document.getElementById('line').style.display = "block";
+            setInterval(() => { if(v.srcObject) analyze(v); }, 4000);
+        } catch(e) { alert("Camera Access Required!"); }
     }
 
-    function loadFile(e) {
+    function autoProcess(e) {
         const file = e.target.files[0];
         if(!file) return;
         const reader = new FileReader();
-        const img = document.getElementById('p');
-        const video = document.getElementById('v');
-        img.style.display="block"; video.style.display="none";
-        document.getElementById('status-msg').style.display="none";
+        const img = document.getElementById('preview');
+        const v = document.getElementById('vid');
+        img.style.display="block"; v.style.display="none";
+        document.getElementById('init-msg').style.display="none";
+        document.getElementById('line').style.display = "block";
 
         reader.onload = (f) => {
             img.src = f.target.result;
-            img.onload = () => runAI(img);
+            // AUTO-SCAN ON UPLOAD
+            img.onload = () => analyze(img);
         };
         reader.readAsDataURL(file);
     }
 
-    async function runAI(source) {
-        if(!ai) return;
+    async function analyze(src) {
+        if(!aiEngine) return;
         
-        // 1. Teachable Machine Prediction
-        const predictions = await ai.predict(source);
+        // 1. Prediction with High Confidence Filter
+        const predictions = await aiEngine.predict(src);
         const top = predictions.sort((a,b) => b.probability - a.probability)[0];
 
         // 2. OCR Extraction
-        const canvas = document.getElementById('c');
-        canvas.width = source.videoWidth || source.naturalWidth;
-        canvas.height = source.videoHeight || source.naturalHeight;
-        canvas.getContext('2d').drawImage(source, 0, 0);
-        
-        const ocr = await Tesseract.recognize(canvas, 'eng');
+        const c = document.getElementById('neural-c');
+        c.width = src.videoWidth || src.naturalWidth;
+        c.height = src.videoHeight || src.naturalHeight;
+        c.getContext('2d').drawImage(src, 0, 0);
+        const ocr = await Tesseract.recognize(c, 'eng');
         const text = ocr.data.text.toLowerCase();
 
-        showResult(top, text);
+        updateUI(top, text);
     }
 
-    function showResult(top, text) {
+    function updateUI(res, rawText) {
         const hud = document.getElementById('result-hud');
-        const v = document.getElementById('verdict');
         hud.style.display = "block";
         
-        const isReal = top.className.toLowerCase().includes("real");
-        v.innerText = isReal ? "AUTHENTIC" : "FAKE DETECTED";
-        v.style.color = isReal ? "var(--main)" : "var(--err)";
-        hud.style.borderLeftColor = isReal ? "var(--main)" : "var(--err)";
+        const isReal = res.className.toLowerCase().includes("real");
+        const vStatus = document.getElementById('v-status');
         
-        document.getElementById('m-conf').innerText = (top.probability * 100).toFixed(1) + "%";
+        vStatus.innerText = isReal ? "AUTHENTIC" : "FRAUD ALERT";
+        vStatus.style.color = isReal ? "var(--accent)" : "var(--danger)";
+        hud.style.borderLeftColor = isReal ? "var(--accent)" : "var(--danger)";
         
-        // Extraction Logic
-        const amt = text.match(/[₹rs]\s?\d+/i);
-        const ref = text.match(/\d{10,12}/);
-        document.getElementById('m-amt').innerText = amt ? amt[0].toUpperCase() : "N/A";
-        document.getElementById('m-id').innerText = ref ? ref[0] : "N/A";
+        document.getElementById('r-conf').innerText = (res.probability * 100).toFixed(1) + "%";
+        document.getElementById('r-app').innerText = (rawText.match(/phonepe|gpay|paytm|upi/i) || ["UPI"])[0].toUpperCase();
+        document.getElementById('r-amt').innerText = (rawText.match(/[₹rs]\s?\d+/i) || ["--"])[0].toUpperCase();
+        document.getElementById('r-id').innerText = (rawText.match(/\d{10,12}/) || ["--"])[0];
 
-        // Voice
-        const talk = new SpeechSynthesisUtterance(isReal ? "Verified" : "Fraud Alert");
-        window.speechSynthesis.speak(talk);
+        if(document.getElementById('voice-chk').checked) {
+            const msg = new SpeechSynthesisUtterance(isReal ? "Verified" : "Warning: Fraud Detected");
+            window.speechSynthesis.speak(msg);
+        }
     }
 </script>
 </body>

@@ -10,89 +10,57 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
 
 <style>
-body {
-    font-family: system-ui;
-    margin: 0;
-    background: linear-gradient(135deg,#eef2ff,#f8fafc);
+body{
+    margin:0;
+    font-family:system-ui;
+    background:#f1f5f9;
     display:flex;
     justify-content:center;
     align-items:center;
-    min-height:100vh;
 }
 
-.container {
-    width: 420px;
-    background: white;
-    padding: 30px;
-    border-radius: 25px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+.container{
+    width:420px;
+    background:white;
+    padding:20px;
+    border-radius:20px;
     text-align:center;
 }
 
-h1 {margin:0;font-size:28px;}
-.subtitle {color:gray;font-size:13px;margin-bottom:15px;}
-
-.camera {
-    position:relative;
-    height:280px;
+.camera{
+    height:260px;
     background:black;
-    border-radius:20px;
+    border-radius:15px;
     overflow:hidden;
+    position:relative;
 }
 
-video {width:100%;height:100%;object-fit:cover;}
+video{width:100%;height:100%;object-fit:cover;}
 
-.overlay {
+.box{
     position:absolute;
-    border:2px dashed white;
-    top:20%;
-    left:10%;
+    border:2px dashed lime;
     width:80%;
     height:60%;
+    top:20%;
+    left:10%;
+}
+
+.result{
+    margin-top:10px;
+    padding:10px;
     border-radius:10px;
 }
 
-.scan-line {
-    position:absolute;
-    height:3px;
-    width:100%;
-    background:lime;
-    animation:scan 2s infinite;
-    display:none;
-}
+.real{background:#dcfce7;color:#166534;}
+.fake{background:#fee2e2;color:#991b1b;}
 
-@keyframes scan {
-    0%{top:0;}
-    100%{top:100%;}
-}
-
-button {
-    margin-top:10px;
-    padding:14px;
-    width:100%;
-    border:none;
-    border-radius:12px;
-    background:black;
-    color:white;
-    cursor:pointer;
-}
-
-.result {
+.history{
     margin-top:15px;
-    padding:15px;
-    border-radius:12px;
-    display:none;
-}
-
-.real {background:#dcfce7;color:#166534;}
-.fake {background:#fee2e2;color:#991b1b;}
-
-.loader {display:none;margin-top:10px;color:#4F46E5;font-weight:600;}
-
-.toggle {
-    margin-top:10px;
-    cursor:pointer;
-    font-size:13px;
+    text-align:left;
+    max-height:120px;
+    overflow:auto;
+    font-size:12px;
 }
 </style>
 </head>
@@ -100,133 +68,132 @@ button {
 <body>
 
 <div class="container">
-    <h1>AuthentiPay AI</h1>
-    <div class="subtitle">Smart UPI Receipt Verification System</div>
+<h2>AuthentiPay AI</h2>
 
-    <div class="camera">
-        <video id="video" autoplay></video>
-        <div class="overlay"></div>
-        <div id="line" class="scan-line"></div>
-    </div>
+<div class="camera">
+<video id="video" autoplay></video>
+<div class="box"></div>
+</div>
 
-    <button onclick="scan()">⚡ Fast Scan</button>
-    <button onclick="deepScan()">🧠 Deep Scan</button>
+<div id="result" class="result"></div>
 
-    <div class="toggle" onclick="toggleVoice()">🔊 Voice: ON</div>
+<div class="history" id="history"></div>
 
-    <div id="loader" class="loader">Analyzing...</div>
-    <div id="result" class="result"></div>
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 let model;
-let voiceEnabled = true;
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let resultDiv = document.getElementById('result');
+let historyDiv = document.getElementById('history');
 
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const resultDiv = document.getElementById('result');
-const loader = document.getElementById('loader');
-const line = document.getElementById('line');
+let buffer=[];
 
-async function loadModel(){
+async function init(){
     model = await mobilenet.load();
-}
-loadModel();
-
-async function startCamera(){
     const stream = await navigator.mediaDevices.getUserMedia({video:true});
     video.srcObject = stream;
+    autoScan();
+    loadHistory();
 }
-startCamera();
+init();
 
-// ⚡ FAST SCAN
-async function scan(){
-    loader.style.display='block';
-    loader.innerHTML="Quick AI Scan...";
-    line.style.display='block';
-    resultDiv.style.display='none';
+async function autoScan(){
 
-    const ctx = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video,0,0);
+    setInterval(async ()=>{
 
-    const predictions = await model.classify(canvas);
-    let prob = predictions[0].probability;
+        if(video.readyState !== 4) return;
 
-    await new Promise(r => setTimeout(r, 800));
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video,0,0);
 
-    showResult(prob);
-}
+        const predictions = await model.classify(canvas);
+        let aiProb = predictions[0].probability;
 
-// 🧠 DEEP SCAN (accurate but slow)
-async function deepScan(){
-    loader.style.display='block';
-    loader.innerHTML="Deep AI Analysis...";
-    line.style.display='block';
-    resultDiv.style.display='none';
+        const { data: { text } } = await Tesseract.recognize(canvas,'eng');
 
-    const ctx = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video,0,0);
+        let patternScore=0;
+        if(text.includes("@")) patternScore++;
+        if(/\d{12}/.test(text)) patternScore++;
+        if(text.toLowerCase().includes("paid")) patternScore++;
 
-    const predictions = await model.classify(canvas);
-    let aiProb = predictions[0].probability;
+        let finalProb = (aiProb*0.7)+(patternScore*0.1);
 
-    const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+        buffer.push(finalProb);
+        if(buffer.length>5) buffer.shift();
 
-    let patternScore = 0;
-    if(text.includes("@")) patternScore++;
-    if(/\d{12}/.test(text)) patternScore++;
-    if(text.toLowerCase().includes("upi")) patternScore++;
-    if(text.toLowerCase().includes("paid")) patternScore++;
+        let avg = buffer.reduce((a,b)=>a+b,0)/buffer.length;
 
-    let finalProb = (aiProb * 0.7) + (patternScore * 0.1);
+        showResult(avg,text);
 
-    showResult(finalProb);
+    },2000);
 }
 
-// RESULT FUNCTION
-function showResult(prob){
-    loader.style.display='none';
-    line.style.display='none';
-    resultDiv.style.display='block';
+function showResult(prob,text){
 
-    let confidence = Math.round(prob * 100);
+    let confidence = Math.round(prob*100);
+    let risk = prob>0.7?"LOW":prob>0.5?"MEDIUM":"HIGH";
 
-    if(prob > 0.6){
+    let reason = prob>0.6 ?
+    "Valid transaction patterns detected"
+    :
+    "Missing or inconsistent payment details";
+
+    let extracted = extractData(text);
+
+    if(prob>0.6){
         resultDiv.className="result real";
         resultDiv.innerHTML = `
-            <h3>🟢 VERIFIED PAYMENT</h3>
-            Confidence: ${confidence}%<br>
-            Transaction patterns match genuine receipts
+        🟢 VERIFIED<br>
+        Trust Score: ${confidence}/100<br>
+        Risk: ${risk}<br><br>
+        ${reason}<br><br>
+        ${extracted}
         `;
-        speak(`Payment verified with ${confidence} percent confidence`);
     } else {
         resultDiv.className="result fake";
         resultDiv.innerHTML = `
-            <h3>🔴 SUSPICIOUS PAYMENT</h3>
-            Confidence: ${confidence}%<br>
-            Possible manipulation or fake receipt detected
+        🔴 FAKE DETECTED<br>
+        Trust Score: ${confidence}/100<br>
+        Risk: ${risk}<br><br>
+        ${reason}<br><br>
+        ${extracted}
         `;
-        speak(`Warning. This appears to be a fake payment with ${confidence} percent confidence`);
+        saveRecord(text);
     }
 }
 
-// VOICE
-function speak(text){
-    if(!voiceEnabled) return;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+function extractData(text){
+    let amount = text.match(/₹\d+/);
+    let upi = text.match(/\w+@\w+/);
+
+    return `
+    Amount: ${amount?amount[0]:"N/A"}<br>
+    UPI: ${upi?upi[0]:"N/A"}
+    `;
 }
 
-// TOGGLE
-function toggleVoice(){
-    voiceEnabled = !voiceEnabled;
-    document.querySelector('.toggle').innerText = voiceEnabled ? "🔊 Voice: ON" : "🔇 Voice: OFF";
+function saveRecord(text){
+    let upi = (text.match(/\w+@\w+/)||["unknown"])[0];
+    let time = new Date().toLocaleTimeString();
+
+    let record = `Fake detected → ${upi} at ${time}`;
+
+    let data = JSON.parse(localStorage.getItem("records")||"[]");
+    data.push(record);
+    localStorage.setItem("records",JSON.stringify(data));
+
+    loadHistory();
+}
+
+function loadHistory(){
+    let data = JSON.parse(localStorage.getItem("records")||"[]");
+    historyDiv.innerHTML = "<b>Fraud Records:</b><br>"+data.slice(-5).join("<br>");
 }
 </script>
 

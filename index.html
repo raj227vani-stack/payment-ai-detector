@@ -2,168 +2,374 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AuthentiPay AI - Ultra Protection</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AuthentiPay AI - Ultra-Scanner Pro</title>
+
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+
 <style>
-body{
-  margin:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
-  display:flex; justify-content:center; align-items:center; height:100vh;
-  position: relative; color: #333;
+:root { --primary: #0ea5e9; --dark: #0f172a; --success: #22c55e; --danger: #ef4444; --bg: #f1f5f9; }
+body { margin:0; font-family:'Segoe UI', Roboto, sans-serif; background: var(--dark); display:flex; justify-content:center; align-items:center; min-height:100vh; padding: 20px; color: #333; overscroll-behavior: contain;}
+.container { width:100%; max-width:420px; background:white; border-radius:30px; padding:25px; box-shadow:0 30px 70px rgba(0,0,0,0.6); text-align:center; position: relative; }
+
+/* Ultra-Scanner UI */
+.scanner-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-top: 15px; border: 4px solid #e2e8f0; display: none; aspect-ratio: 3/4; }
+video { width: 100%; height: 100%; object-fit: cover; display: block; }
+#preview { width: 100%; height: 100%; object-fit: cover; display: none; border-radius: 18px; }
+
+/* The actual scanning line animation */
+.scan-region-hightlight {
+    position: absolute; top: 10%; left: 10%; width: 80%; height: 80%;
+    border: 2px solid rgba(14, 165, 233, 0.5); border-radius: 15px; box-sizing: border-box; z-index: 8;
 }
-.container{
-  width:420px; background:white; border-radius:24px; padding:25px;
-  box-shadow:0 25px 50px rgba(0,0,0,0.3); text-align:center;
+.scan-line {
+    position: absolute; top: 10%; left: 10%; width: 80%; height: 4px;
+    background: var(--primary); box-shadow: 0 0 20px var(--primary);
+    animation: scan-action 2s infinite linear; z-index: 10; display: none;
 }
-#soundToggle {
-  position: absolute; top: 20px; right: 20px;
-  background: white; border-radius: 50%; width: 50px; height: 50px;
-  display: flex; justify-content: center; align-items: center;
-  cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  font-size: 22px; border: none; z-index: 100; transition: 0.3s;
-}
+@keyframes scan-action { 0% { top: 10%; } 100% { top: 85%; } }
+
+/* Modern Buttons */
+.btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+.btn { padding: 16px; border-radius: 14px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;}
+.btn-cam { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); }
+.btn-cam:active { transform: scale(0.97); }
+.btn-up { background: var(--bg); color: var(--dark); border: 1px solid #cbd5e1; }
+.btn-capture { background: var(--success); color: white; width: 100%; margin-top: 10px; display: none; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3); }
+
+/* Popup Overlay */
+#popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(8px); }
+.popup-card { background: white; padding: 35px; border-radius: 28px; width: 85%; max-width: 340px; text-align: center; transform: translateY(50px); opacity: 0; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.popup-card.active { transform: translateY(0); opacity: 1; }
+
+/* Dashboard */
+.dashboard { margin-top: 30px; background: var(--bg); border-radius: 20px; padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border: 1px solid #e2e8f0; }
+.dash-card { background: white; padding: 12px; border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+.dash-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+.dash-val { font-size: 18px; font-weight: 800; color: var(--dark); margin-top: 5px; }
+
+#soundToggle { position: fixed; top: 20px; right: 20px; background: white; border-radius: 50%; width: 55px; height: 55px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.2); font-size: 24px; border: none; z-index: 100; transition: 0.3s;}
 #soundToggle:active { transform: scale(0.9); }
-img{width:100%; border-radius:15px; margin-top:15px; max-height: 250px; object-fit: contain; border: 1px solid #ddd;}
-.result{margin-top:15px; padding:15px; border-radius:12px; font-weight:bold; font-size: 18px;}
-.real{background:#dcfce7; color:#15803d; border: 1px solid #bbf7d0;}
-.fake{background:#fee2e2; color:#b91c1c; border: 1px solid #fecaca;}
-.info-section{font-size:14px; color:#475569; margin-top:10px; text-align: left; padding: 10px; background: #f8fafc; border-radius: 10px;}
-button, input[type="file"]{margin-top:15px; padding:12px; border-radius:10px; border: 1px solid #cbd5e1; width: 100%; font-weight: 600;}
-#resetBtn { background: #0f172a; color: white; border: none; display: none; }
-hr { border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0; }
 </style>
 </head>
 <body>
 
-<button id="soundToggle" title="Sound On/Off">🔊</button>
+<button id="soundToggle">🔊</button>
 
 <div class="container">
-  <h2 style="margin-top:0; color:#0f172a;">AuthentiPay AI</h2>
-  
-  <input type="file" id="upload" accept="image/*">
-  <img id="preview" style="display:none;">
-  
-  <div id="status" style="margin-top:10px; font-size: 13px; color: #64748b;">Ready to Scan</div>
-  
-  <div id="result" class="result">Waiting for Image...</div>
-  
-  <div id="details" class="info-section"></div>
-  
-  <button id="resetBtn">Scan Another Receipt</button>
+  <h2 style="margin:0; font-size: 28px; letter-spacing: -1px;">AuthentiPay <span style="color:var(--primary);">AI</span></h2>
+  <p style="font-size: 13px; color: #64748b; margin-top: 5px; font-weight: 500;">Dukaan ki Digital Tijori</p>
+
+  <div class="btn-group" id="mainBtns">
+    <button class="btn btn-cam" onclick="initUltraScanner()">📷 LIVE SCAN</button>
+    <button class="btn btn-up" onclick="document.getElementById('fileIn').click()">📁 UPLOAD</button>
+  </div>
+  <input type="file" id="fileIn" accept="image/*" style="display:none">
+
+  <div class="scanner-container" id="sContainer">
+    <div class="scan-region-hightlight"></div>
+    <div class="scan-line" id="sLine"></div>
+    <video id="video" autoplay playsinline></video>
+    <img id="preview">
+  </div>
+  <button id="captureBtn" class="btn btn-capture">CAPTURE & VERIFY</button>
+
+  <div id="status" style="margin-top:18px; font-weight: 800; color: var(--primary); font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">SYSTEM READY</div>
+
+  <div class="dashboard">
+    <div class="dash-card" style="grid-column: span 2; border-bottom: 3px solid var(--primary);">
+      <div class="dash-label">Aaj ki Kamai (Verified)</div>
+      <div id="dTotal" class="dash-val" style="font-size: 26px; color: var(--dark);">₹0</div>
+    </div>
+    <div class="dash-card"><div class="dash-label">Asli Payments</div><div id="dCount" class="dash-val" style="color: var(--success);">0</div></div>
+    <div class="dash-card"><div class="dash-label">Scam Pakde Gaye</div><div id="dFake" class="dash-val" style="color: var(--danger);">0</div></div>
+  </div>
 </div>
 
+<div id="popup">
+  <div class="popup-card" id="pCard">
+    <div id="popIcon" style="font-size: 60px; margin-bottom: 15px;">✅</div>
+    <h3 id="popTitle" style="margin:0; font-size: 22px;">Verified!</h3>
+    <p id="popText" style="color: #64748b; font-size: 15px; margin: 12px 0 25px 0; line-height: 1.5;"></p>
+    <button class="btn btn-cam" style="width: 100%;" onclick="resetUIForNext()">SCAN NEXT CUSTOMER</button>
+  </div>
+</div>
+
+<canvas id="processingCanvas" style="display:none"></canvas>
+<canvas id="finalCanvas" style="display:none"></canvas>
+
 <script>
-const preview=document.getElementById("preview");
-const resultDiv=document.getElementById("result");
-const statusText=document.getElementById("status");
-const details=document.getElementById("details");
-const resetBtn=document.getElementById("resetBtn");
-const soundToggle = document.getElementById("soundToggle");
-const uploadInput = document.getElementById("upload");
+// --- Configuration ---
+// TO USE WORLD'S BEST OCR (Google Cloud Vision), enter your API Key here.
+// If empty, it uses upgraded local Tesseract.
+const GOOGLE_VISION_API_KEY = ""; 
 
+// Logic States
+let stats = JSON.parse(localStorage.getItem('authPayBizStats')) || { total: 0, count: 0, fake: 0 };
+let scannedIDs = JSON.parse(localStorage.getItem('scannedTxnHistory')) || [];
 let isSoundOn = true;
+let stream = null;
 
-soundToggle.onclick = () => {
-  isSoundOn = !isSoundOn;
-  soundToggle.innerText = isSoundOn ? "🔊" : "🔈";
-  soundToggle.style.background = isSoundOn ? "white" : "#e2e8f0";
-};
+const video = document.getElementById('video');
+const sContainer = document.getElementById('sContainer');
+const previewImg = document.getElementById('preview');
+const captureBtn = document.getElementById('captureBtn');
+const sLine = document.getElementById('sLine');
+const statusText = document.getElementById('status');
+const fileIn = document.getElementById('fileIn');
+const mainBtns = document.getElementById('mainBtns');
 
-function speak(text) {
+function updateDash() {
+  document.getElementById('dTotal').innerText = `₹${stats.total.toLocaleString('en-IN')}`;
+  document.getElementById('dCount').innerText = stats.count;
+  document.getElementById('dFake').innerText = stats.fake;
+  localStorage.setItem('authPayBizStats', JSON.stringify(stats));
+  localStorage.setItem('scannedTxnHistory', JSON.stringify(scannedIDs));
+}
+updateDash();
+
+soundToggle.onclick = () => { isSoundOn = !isSoundOn; soundToggle.innerText = isSoundOn ? "🔊" : "🔈"; };
+
+function announce(msg) {
   if (isSoundOn && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel();
-    const speech = new SpeechSynthesisUtterance(text);
-    speech.rate = 0.9;
-    speech.pitch = 1;
-    window.speechSynthesis.speak(speech);
+    const u = new SpeechSynthesisUtterance(msg);
+    u.rate = 1.0; u.pitch = 1.0; window.speechSynthesis.speak(u);
   }
 }
 
-uploadInput.addEventListener("change", e => {
-  const file = e.target.files[0];
-  if(!file) return;
-  
-  preview.src = URL.createObjectURL(file);
-  preview.style.display = "block";
-  uploadInput.style.display = "none";
-  
-  preview.onload = () => { startOCR(); };
-});
+// --- WORLD-CLASS SCANNING LOGIC (Pre-processing Engine) ---
 
-resetBtn.onclick = () => {
-  window.speechSynthesis.cancel();
-  location.reload(); // Best way to clear all memory/cache for fresh scan
+async function initUltraScanner() {
+  try {
+    // Force High-Resolution and Focus
+    stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+            facingMode: "environment", 
+            width: { ideal: 1920 }, // Full HD ideal
+            height: { ideal: 1080 },
+            frameRate: { ideal: 30 }
+        } 
+    });
+    video.srcObject = stream;
+    sContainer.style.display = "block";
+    video.style.display = "block";
+    previewImg.style.display = "none";
+    captureBtn.style.display = "block";
+    mainBtns.style.display = "none";
+    statusText.innerText = "Align receipt inside the box";
+  } catch (e) { alert("Camera Permission Denied or Not Available."); }
+}
+
+captureBtn.onclick = () => {
+  const processCanvas = document.getElementById('processingCanvas');
+  const ctx = processCanvas.getContext('2d');
+  
+  // Capture current video frame at native resolution
+  processCanvas.width = video.videoWidth;
+  processCanvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+  
+  // Convert stream to image for display
+  const imgUrl = processCanvas.toDataURL('image/jpeg', 0.9);
+  
+  video.style.display = "none";
+  previewImg.src = imgUrl; 
+  previewImg.style.display = "block";
+  captureBtn.style.display = "none";
+  sLine.style.display = "block";
+  
+  if(stream) stream.getTracks().forEach(t => t.stop());
+  
+  statusText.innerText = "OPTIMIZING IMAGE FOR DEEP SCAN...";
+  // Start Pre-processing before OCR
+  preprocessAndRunOCR(processCanvas);
 };
 
-async function startOCR(){
-  statusText.innerText = "Analyzing Security Patterns...";
-  try {
-    const { data:{ text } } = await Tesseract.recognize(preview, 'eng');
-    analyze(text);
-  } catch (err) {
-    statusText.innerText = "Error scanning image.";
+fileIn.onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const url = URL.createObjectURL(file);
+  
+  const img = new Image();
+  img.onload = () => {
+      const processCanvas = document.getElementById('processingCanvas');
+      const ctx = processCanvas.getContext('2d');
+      processCanvas.width = img.width;
+      processCanvas.height = img.width;
+      ctx.drawImage(img, 0, 0);
+      
+      previewImg.src = url;
+      previewImg.style.display = "block";
+      sContainer.style.display = "block";
+      mainBtns.style.display = "none";
+      sLine.style.display = "block";
+      
+      statusText.innerText = "OPTIMIZING UPLOADED IMAGE...";
+      preprocessAndRunOCR(processCanvas);
+  };
+  img.src = url;
+};
+
+// --- THE KEY: IMAGE PRE-PROCESSING ---
+// This makes the image Grayscale, Sharpens it, and increases Contrast.
+function preprocessAndRunOCR(sourceCanvas) {
+    const finalCanvas = document.getElementById('finalCanvas');
+    const finalCtx = finalCanvas.getContext('2d');
+    
+    finalCanvas.width = sourceCanvas.width;
+    finalCanvas.height = sourceCanvas.height;
+    
+    // 1. Draw original
+    finalCtx.drawImage(sourceCanvas, 0, 0);
+    
+    // 2. Apply Filters (Grayscale + High Contrast)
+    // Tesseract reads B&W high contrast text MUCH better.
+    finalCtx.filter = 'grayscale(100%) contrast(150%) saturate(0%) brightness(110%)';
+    finalCtx.drawImage(finalCanvas, 0, 0);
+    finalCtx.filter = 'none'; // Reset filter
+    
+    // Extract processed image as base64
+    const processedImgUrl = finalCanvas.toDataURL('image/jpeg', 0.8);
+    
+    // Optional: See processed image for debugging
+    // previewImg.src = processedImgUrl; 
+
+    performOCR(processedImgUrl);
+}
+
+async function performOCR(processedImgBase64) {
+    statusText.innerText = "AI READING RECEIPT DATA...";
+    
+    let recognizedText = "";
+
+    if (GOOGLE_VISION_API_KEY) {
+        // --- BEST APPROACH: GOOGLE CLOUD VISION API ---
+        try {
+            const base64Content = processedImgBase64.split(',')[1]; // Remove header
+            const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    requests: [{
+                        image: { content: base64Content },
+                        features: [{ type: 'TEXT_DETECTION' }]
+                    }]
+                })
+            });
+            const data = await response.json();
+            recognizedText = data.responses[0].fullTextAnnotation.text;
+        } catch (err) {
+            console.error("Google Vision API Failed, falling back to local Tesseract.", err);
+            recognizedText = await runLocalTesseract(processedImgBase64);
+        }
+    } else {
+        // --- FALLBACK: UPGRADED LOCAL TESSERACT ---
+        recognizedText = await runLocalTesseract(processedImgBase64);
+    }
+
+    analyze(recognizedText);
+}
+
+async function runLocalTesseract(imgData) {
+    // We use the pre-processed image here
+    const { data: { text } } = await Tesseract.recognize(imgData, 'eng', {
+        // tessjs_create_pdf: '0', tessjs_create_hocr: '0', // Performance tweaks
+    });
+    return text;
+}
+
+// --- Analysis & Features (Keep Same) ---
+
+function analyze(text) {
+  if(!text) { failedScan(); return; }
+  const t = text.toLowerCase();
+  
+  // Extreme Amount Extraction logic
+  let amt = 0;
+  let amtM = text.match(/(?:₹|Rs\.?|INR|Amount|Total|Amt)\s*([\d,]{1,10}(?:\.\d{2})?)/i);
+  if(amtM) {
+      amt = parseFloat(amtM[1].replace(/,/g, ''));
+  } else {
+    // Fallback: Find the biggest decimal number (usually amount)
+    let ns = text.match(/\d{1,3}(?:,\d{3})*(?:\.\d{2})/g) || text.match(/\d{4,10}/g);
+    if(ns) amt = parseFloat(ns.sort((a,b) => parseFloat(b.replace(/,/g,'')) - parseFloat(a.replace(/,/g,'')))[0].replace(/,/g,''));
+  }
+
+  // App Detection
+  let app = t.includes("phonepe") ? "PhonePe" : t.includes("gpay") ? "Google Pay" : t.includes("paytm") ? "Paytm" : "App";
+
+  let txIDM = text.match(/\d{12}/);
+  let txID = txIDM ? txIDM[0] : "TXN"+Date.now();
+  let upi = (text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || ["Unknown UPI"])[0];
+  
+  // Duplicate Check
+  let isDup = scannedIDs.includes(txID);
+  
+  // Real vs Fake Scoring
+  let score = 0;
+  if(upi !== "Unknown UPI") score += 2;
+  if(amt > 0) score += 2;
+  if(t.includes("success") || t.includes("paid") || t.includes("completed") || t.includes("successful")) score += 2;
+  if(txIDM) score += 2;
+  
+  let isReal = score >= 5 && !isDup; // Higher threshold for ultra-security
+  
+  if(isReal) { 
+      stats.total += amt; stats.count += 1; scannedIDs.push(txID); 
+      if(scannedIDs.length > 500) scannedIDs.shift(); // Keep history manageable
+  } else if(!isDup) { 
+      stats.fake += 1; 
+  }
+  updateDash();
+
+  // Show Ultimate Popup
+  const pop = document.getElementById('popup');
+  const pCard = document.getElementById('pCard');
+  const pText = document.getElementById('popText');
+  const pIcon = document.getElementById('popIcon');
+  const pTitle = document.getElementById('popTitle');
+  
+  pop.style.display = "flex";
+  setTimeout(() => pCard.classList.add('active'), 10);
+
+  if(isDup) {
+    pIcon.innerText = "⚠️"; pTitle.innerText = "Duplicate Used!"; pTitle.style.color = "orange";
+    pText.innerHTML = `Transaction ID <strong>${txID}</strong> was already scanned today.<br>Duplicate payment attempt.`;
+    announce(`Warning! Duplicate receipt from ${person} on ${app}.`);
+  } else if(isReal) {
+    let personMatch = text.match(/(?:Paid to|To|Transfer to|From|Received from|Beneficiary|Receiver)\s*:?\s*([A-Z\s]{3,25})/i);
+    let person = personMatch ? personMatch[1].trim() : "Customer";
+    pIcon.innerText = "✅"; pTitle.innerText = "Verified Asli!"; pTitle.style.color = "var(--success)";
+    pText.innerHTML = `Received ₹<strong>${amt.toLocaleString('en-IN')}</strong> successfully on ${app}.<br>From: ${person}`;
+    announce(`Received ${amt} rupees successfully on ${app}.`);
+  } else {
+    pIcon.innerText = "🔴"; pTitle.innerText = "Fraud Alert!"; pTitle.style.color = "var(--danger)";
+    pText.innerHTML = "Security check failed. This receipt is edited or fake.<br><strong>DO NOT ACCEPT.</strong>";
+    announce("Security Alert! This receipt is fake.");
   }
 }
 
-function analyze(text){
-  const t = text.toLowerCase();
-  
-  // 1. ADVANCED AMOUNT EXTRACTION (Fixes 5500/550 issue)
-  let amountValue = "Not Found";
-  // Regex looks for digits with optional commas and decimals after currency markers
-  let amountMatch = text.match(/(?:₹|Rs\.?|INR|Amount|Amt|Total)\s*([\d,]{1,10}(?:\.\d{2})?)/i);
-  
-  if (amountMatch) {
-    amountValue = amountMatch[1].replace(/,/g, ''); 
-  } else {
-    // Fallback: Find the most prominent numerical figure (usually the amount)
-    let numbers = text.match(/\d{1,3}(?:,\d{3})*(?:\.\d{2})/g) || text.match(/\d{3,10}/g);
-    if (numbers) {
-      amountValue = numbers.sort((a,b) => parseFloat(b.replace(/,/g,'')) - parseFloat(a.replace(/,/g,'')))[0];
-    }
-  }
+function failedScan() {
+    statusText.innerText = "SCAN FAILED - TRY AGAIN";
+    statusText.style.color = "var(--danger)";
+    announce("Scan failed. Please take a clearer photo.");
+    setTimeout(() => resetUIForNext(), 2000);
+}
 
-  // 2. UPI ID & NAME DETECTION
-  let upiMatch = text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/);
-  let upiID = upiMatch ? upiMatch[0] : "Not Detected";
-
-  let nameMatch = text.match(/(?:Paid to|To|Transfer to|From|Received from|Beneficiary|Receiver)\s*:?\s*([A-Z\s]{3,25})/i);
-  let personName = nameMatch ? nameMatch[1].trim() : "Unknown";
-
-  // 3. TRANSACTION DIRECTION
-  let isReceived = t.includes("received") || t.includes("credited") || t.includes("from");
-  let direction = isReceived ? "Received from" : "Paid to";
-
-  // 4. AUTHENTICITY SCORE
-  let score = 0;
-  if(upiID !== "Not Detected") score += 2;
-  if(amountValue !== "Not Found") score += 2;
-  if(t.includes("success") || t.includes("completed") || t.includes("paid")) score += 2;
-  if(/\d{12}/.test(t)) score += 2; // Ref/Transaction ID check
-
-  let isVerified = score >= 4;
-  let trustPercent = Math.min(Math.round((score/8)*100), 100);
-
-  // UI DISPLAY
-  resultDiv.className = "result " + (isVerified ? "real" : "fake");
-  resultDiv.innerHTML = isVerified ? `🟢 VERIFIED (${trustPercent}%)` : `🔴 SUSPICIOUS (${trustPercent}%)`;
-
-  details.innerHTML = `
-    <strong>Status:</strong> ${isVerified ? 'Authentic' : 'Risk Detected'}<br>
-    <strong>${direction}:</strong> ${personName}<br>
-    <strong>Amount:</strong> ₹${amountValue}<br>
-    <strong>UPI ID:</strong> ${upiID}
-    <hr>
-    <small>Security Check: OCR Parsing Complete.</small>
-  `;
-
-  // VOICE OUTPUT
-  let voiceMsg = isVerified ? "Receipt verified." : "Warning, suspicious receipt.";
-  voiceMsg += ` ${direction} ${personName}. Amount is ${amountValue} rupees.`;
-  speak(voiceMsg);
-
-  statusText.innerText = "Scan Complete";
-  resetBtn.style.display = "block";
+function resetUIForNext() {
+  window.speechSynthesis.cancel();
+  document.getElementById('pCard').classList.remove('active');
+  setTimeout(() => {
+    document.getElementById('popup').style.display = "none";
+    sContainer.style.display = "none";
+    previewImg.style.display = "none";
+    mainBtns.style.display = "grid";
+    sLine.style.display = "none";
+    statusText.innerText = "READY TO SECURE";
+    statusText.style.color = "var(--primary)";
+    fileIn.value = "";
+    if(stream) stream.getTracks().forEach(t => t.stop());
+  }, 300);
 }
 </script>
 </body>

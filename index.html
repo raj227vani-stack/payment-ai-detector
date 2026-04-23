@@ -9,91 +9,89 @@
 <style>
 :root { --primary: #0ea5e9; --dark: #0f172a; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
 body { margin:0; font-family:'Inter', sans-serif; background: var(--dark); display:flex; justify-content:center; align-items:center; min-height:100vh; padding: 20px; color: #1e293b; }
+.container { width:100%; max-width:420px; background:white; border-radius:32px; padding:30px; box-shadow:0 40px 80px rgba(0,0,0,0.6); text-align:center; position: relative; }
 
-.container { width:100%; max-width:400px; background:white; border-radius:32px; padding:30px; box-shadow:0 40px 80px rgba(0,0,0,0.6); text-align:center; }
-
-/* Scanner Layout */
-.scanner-container { position: relative; width: 100%; border-radius: 24px; overflow: hidden; background: #000; margin-top: 20px; border: 1px solid #e2e8f0; display: none; aspect-ratio: 4/5; }
-video { width: 100%; height: 100%; object-fit: cover; }
-#preview { width: 100%; height: 100%; object-fit: cover; display: none; }
+/* Scanner & Preview */
+.scanner-container { position: relative; width: 100%; border-radius: 24px; overflow: hidden; background: #f1f5f9; margin-top: 20px; border: 2px solid #e2e8f0; display: none; aspect-ratio: 4/5; }
+video, #preview { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .scan-line { position: absolute; top: 10%; left: 0; width: 100%; height: 3px; background: var(--primary); box-shadow: 0 0 15px var(--primary); animation: scan-action 2s infinite linear; z-index: 10; display: none; }
 @keyframes scan-action { 0% { top: 10%; } 100% { top: 90%; } }
 
 /* Controls */
 .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px; }
-.btn { padding: 16px; border-radius: 16px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; letter-spacing: 0.5px; }
-.btn-cam { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(14, 165, 233, 0.2); }
-.btn-up { background: var(--bg); color: var(--dark); border: 1px solid #e2e8f0; }
+.btn { padding: 16px; border-radius: 16px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; }
+.btn-cam { background: var(--primary); color: white; }
+.btn-up { background: #e2e8f0; color: var(--dark); }
 .btn-capture { background: var(--dark); color: white; width: 100%; margin-top: 15px; display: none; border-radius: 16px; }
 
-/* Metrics Dashboard */
-.dashboard { margin-top: 30px; background: var(--bg); border-radius: 24px; padding: 20px; border: 1px solid #edf2f7; text-align: left; }
-.dash-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px; }
+/* Dashboard - Updated to Total Revenue */
+.dashboard { margin-top: 30px; background: var(--bg); border-radius: 24px; padding: 20px; text-align: left; border: 1px solid #edf2f7; }
+.dash-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
 .dash-val { font-size: 24px; font-weight: 800; color: var(--dark); margin-bottom: 15px; }
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-/* Result Popup */
 #popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px); }
 .popup-card { background: white; padding: 35px; border-radius: 32px; width: 85%; max-width: 340px; text-align: center; }
-
-#soundToggle { position: fixed; top: 20px; right: 20px; background: white; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.1); font-size: 20px; border: none; }
+#soundBtn { position: absolute; top: 20px; right: 20px; background: #f1f5f9; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body>
 
-<button id="soundToggle">🔊</button>
-
 <div class="container">
-  <h2 style="margin:0; font-size: 26px;">AuthentiPay <span style="color:var(--primary);">AI</span></h2>
-  <p style="font-size: 11px; color: #94a3b8; margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Secure Transaction Monitor</p>
+  <button id="soundBtn" onclick="toggleSound()">🔊</button>
+  <h2 style="margin:0; font-size: 26px; font-weight: 800;">AuthentiPay <span style="color:var(--primary);">AI</span></h2>
+  <p style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Payment Guardian</p>
 
   <div class="btn-group" id="mainBtns">
-    <button class="btn btn-cam" onclick="startScanner()">SCAN RECEIPT</button>
-    <button class="btn btn-up" onclick="document.getElementById('fileIn').click()">UPLOAD IMAGE</button>
+    <button class="btn btn-cam" onclick="startScanner()">LIVE SCAN</button>
+    <button class="btn btn-up" onclick="document.getElementById('fileIn').click()">UPLOAD</button>
   </div>
   <input type="file" id="fileIn" accept="image/*" style="display:none">
 
   <div class="scanner-container" id="sContainer">
     <div class="scan-line" id="sLine"></div>
     <video id="video" autoplay playsinline></video>
-    <img id="preview">
+    <img id="preview" alt="Preview Image" style="display:none;">
   </div>
-  <button id="captureBtn" class="btn btn-capture">VERIFY PAYMENT</button>
+  <button id="captureBtn" class="btn btn-capture">VERIFY NOW</button>
 
   <div id="status" style="margin-top:20px; font-weight: 800; color: var(--primary); font-size: 11px;">SYSTEM READY</div>
 
   <div class="dashboard">
-    <div class="dash-label">Total Verified Revenue</div>
+    <div class="dash-label">Total Revenue</div>
     <div id="dTotal" class="dash-val">₹0.00</div>
-    <div class="stats-grid">
-        <div><div class="dash-label">Approved</div><div id="dCount" class="dash-val" style="font-size: 18px; color: var(--success); margin:0;">0</div></div>
-        <div><div class="dash-label">Risks</div><div id="dFake" class="dash-val" style="font-size: 18px; color: var(--danger); margin:0;">0</div></div>
+    <div style="display: flex; justify-content: space-between;">
+        <div><div class="dash-label">Success</div><div id="dCount" class="dash-val" style="font-size: 18px; color: var(--success); margin:0;">0</div></div>
+        <div><div class="dash-label">Blocked</div><div id="dFake" class="dash-val" style="font-size: 18px; color: var(--danger); margin:0;">0</div></div>
     </div>
   </div>
 </div>
 
 <div id="popup">
   <div class="popup-card">
-    <div id="popIcon" style="font-size: 50px; margin-bottom: 10px;"></div>
-    <h3 id="popTitle" style="font-size: 22px; font-weight: 800;"></h3>
-    <div id="popDetails" style="margin: 20px 0; text-align: left; background: #f8fafc; padding: 15px; border-radius: 16px; font-size: 14px; line-height: 1.6;"></div>
-    <button class="btn btn-cam" style="width: 100%;" onclick="location.reload()">NEXT SCAN</button>
+    <div id="popIcon" style="font-size: 55px; margin-bottom: 10px;"></div>
+    <h3 id="popTitle" style="margin:0; font-size: 22px; font-weight: 800;"></h3>
+    <div id="popDetails" style="margin: 20px 0; text-align: left; background: #f8fafc; padding: 18px; border-radius: 16px; font-size: 13px; line-height: 1.6;"></div>
+    <button class="btn btn-cam" style="width: 100%;" onclick="location.reload()">NEXT CUSTOMER</button>
   </div>
 </div>
 
 <canvas id="processingCanvas" style="display:none"></canvas>
 
 <script>
-let stats = JSON.parse(localStorage.getItem('ap_pro_stats')) || { total: 0, count: 0, fake: 0 };
-let txnHistory = JSON.parse(localStorage.getItem('ap_pro_txns')) || [];
+let stats = JSON.parse(localStorage.getItem('ap_pro_v5')) || { total: 0, count: 0, fake: 0 };
+let txnLog = JSON.parse(localStorage.getItem('ap_log_v5')) || [];
 let stream = null;
+let isSoundOn = true;
+
+function toggleSound() { isSoundOn = !isSoundOn; document.getElementById('soundBtn').innerText = isSoundOn ? "🔊" : "🔈"; }
+function speak(msg) { if(isSoundOn) { window.speechSynthesis.cancel(); const s = new SpeechSynthesisUtterance(msg); s.rate=0.9; window.speechSynthesis.speak(s); } }
 
 function updateUI() {
   document.getElementById('dTotal').innerText = `₹${stats.total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
   document.getElementById('dCount').innerText = stats.count;
   document.getElementById('dFake').innerText = stats.fake;
-  localStorage.setItem('ap_pro_stats', JSON.stringify(stats));
-  localStorage.setItem('ap_pro_txns', JSON.stringify(txnHistory));
+  localStorage.setItem('ap_pro_v5', JSON.stringify(stats));
+  localStorage.setItem('ap_log_v5', JSON.stringify(txnLog));
 }
 updateUI();
 
@@ -102,10 +100,12 @@ async function startScanner() {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: 1280 } });
     document.getElementById('video').srcObject = stream;
     document.getElementById('sContainer').style.display = "block";
+    document.getElementById('video').style.display = "block";
+    document.getElementById('preview').style.display = "none";
     document.getElementById('mainBtns').style.display = "none";
     document.getElementById('captureBtn').style.display = "block";
-    document.getElementById('status').innerText = "POSITION CAMERA OVER RECEIPT";
-  } catch (e) { alert("Enable camera permissions to scan."); }
+    document.getElementById('status').innerText = "CAPTURE RECEIPT";
+  } catch (e) { alert("Camera Access Error"); }
 }
 
 captureBtn.onclick = () => {
@@ -113,65 +113,72 @@ captureBtn.onclick = () => {
   const video = document.getElementById('video');
   canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0);
-  const data = canvas.toDataURL('image/jpeg', 0.9);
+  const data = canvas.toDataURL('image/jpeg', 1.0);
   
   video.style.display = "none";
-  document.getElementById('preview').src = data;
-  document.getElementById('preview').style.display = "block";
+  const p = document.getElementById('preview');
+  p.src = data; p.style.display = "block";
   document.getElementById('sLine').style.display = "block";
   document.getElementById('captureBtn').style.display = "none";
-  
   if(stream) stream.getTracks().forEach(t => t.stop());
-  executeOCR(data);
+  runOCR(data);
 };
 
 fileIn.onchange = (e) => {
   const file = e.target.files[0];
   if(!file) return;
-  const url = URL.createObjectURL(file);
-  document.getElementById('preview').src = url;
-  document.getElementById('preview').style.display = "block";
-  document.getElementById('sContainer').style.display = "block";
-  document.getElementById('mainBtns').style.display = "none";
-  document.getElementById('sLine').style.display = "block";
-  executeOCR(url);
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const data = event.target.result;
+    document.getElementById('sContainer').style.display = "block";
+    document.getElementById('video').style.display = "none";
+    const p = document.getElementById('preview');
+    p.src = data; p.style.display = "block"; // Fix: Image Preview for Upload
+    document.getElementById('mainBtns').style.display = "none";
+    document.getElementById('sLine').style.display = "block";
+    runOCR(data);
+  };
+  reader.readAsDataURL(file);
 };
 
-async function executeOCR(src) {
-  document.getElementById('status').innerText = "AI VERIFYING...";
+async function runOCR(src) {
+  document.getElementById('status').innerText = "AUTHENTICATING...";
   const { data: { text } } = await Tesseract.recognize(src, 'eng');
-  parseReceipt(text);
+  analyze(text);
 }
 
-function parseReceipt(text) {
-  const cleanText = text.replace(/\s+/g, ' ');
+function analyze(text) {
+  const t = text.toLowerCase();
+  
+  // --- SUPER-PRECISION AMOUNT LOGIC ---
   let amount = 0;
-
-  // 1. Primary Check: Symbol + Digits
-  let match = cleanText.match(/(?:₹|Rs|INR)\s*([\d,]+\.?\d{0,2})/i);
-  if(match) {
-    amount = parseFloat(match[1].replace(/,/g,''));
-  } else {
-    // 2. Secondary Check: Decimals
-    let decimals = cleanText.match(/\d{1,3}(?:,\d{3})*(?:\.\d{2})/g);
-    if(decimals) {
+  let decimals = text.match(/\d{1,3}(?:,\d{3})*(?:\.\d{2})/g); // Matches 500.00, 1,200.50
+  
+  if(decimals) {
       amount = parseFloat(decimals.sort((a,b) => b.length - a.length)[0].replace(/,/g,''));
-    }
+  } else {
+      let symbolMatch = text.match(/(?:₹|Rs|INR)\s*([\d,]+)/i);
+      if(symbolMatch) amount = parseFloat(symbolMatch[1].replace(/,/g,''));
   }
 
-  let txID = (cleanText.match(/\d{12}/) || ["TXN"+Date.now()])[0];
-  let upi = (cleanText.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || ["Not Found"])[0];
-  let isDup = txnHistory.includes(txID);
-  
-  let score = 0;
-  if(cleanText.toLowerCase().match(/(success|paid|received|completed|successful)/)) score += 3;
-  if(amount > 0) score += 2;
-  if(txID.length >= 10) score += 2;
+  // Recipient/Sender Detection
+  let partyMatch = text.match(/(?:Paid to|To|Transfer to|From|Received from|Beneficiary)\s*:?\s*([A-Z\s]{3,25})/i);
+  let partyName = partyMatch ? partyMatch[1].trim() : "Verified Merchant";
 
-  const isVerified = score >= 5 && !isDup;
+  let txID = (text.match(/\d{12}/) || ["TXN"+Date.now()])[0];
+  let isDup = txnLog.includes(txID);
   
-  if(isVerified) { stats.total += amount; stats.count++; txnHistory.push(txID); }
-  else if(!isDup) { stats.fake++; }
+  const isReal = (t.match(/(success|completed|paid|received|successful)/)) && amount > 0 && !isDup;
+  
+  if(isReal) { 
+      stats.total += amount; stats.count++; txnLog.push(txID); 
+      speak(`Received ${amount} rupees from ${partyName}`);
+  } else if(isDup) {
+      speak("Warning! This transaction was already used.");
+  } else { 
+      stats.fake++; 
+      speak("Security alert! Pattern not recognized."); 
+  }
   updateUI();
 
   document.getElementById('popup').style.display = "flex";
@@ -181,13 +188,13 @@ function parseReceipt(text) {
 
   if(isDup) {
     icon.innerText = "⚠️"; title.innerText = "Duplicate Entry";
-    det.innerHTML = `<strong>Status:</strong> Already Scanned<br><strong>ID:</strong> ${txID}<br>Security alert: This receipt was already processed.`;
-  } else if(isVerified) {
-    icon.innerText = "✅"; title.innerText = "Payment Verified";
-    det.innerHTML = `<strong>Amount:</strong> ₹${amount.toLocaleString('en-IN')}<br><strong>Ref ID:</strong> ${txID}<br><strong>UPI:</strong> ${upi}`;
+    det.innerHTML = `<strong>Alert:</strong> This Receipt was already scanned today.<br><strong>Ref ID:</strong> ${txID}`;
+  } else if(isReal) {
+    icon.innerText = "✅"; title.innerText = "Verified Authentic";
+    det.innerHTML = `<strong>Amount:</strong> ₹${amount.toLocaleString('en-IN')}<br><strong>Party:</strong> ${partyName}<br><strong>Ref ID:</strong> ${txID}`;
   } else {
-    icon.innerText = "🛡️"; title.innerText = "Security Alert";
-    det.innerHTML = `<strong>Status:</strong> Risk Detected<br>This receipt does not meet the security criteria. <strong>Reject Transaction.</strong>`;
+    icon.innerText = "🛡️"; title.innerText = "Security Risk";
+    det.innerHTML = `<strong>Status:</strong> Rejected<br>Receipt patterns do not match standard banking security.`;
   }
 }
 </script>

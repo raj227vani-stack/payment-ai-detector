@@ -3,71 +3,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AuthentiPay AI - Deep Scan Edition</title>
+<title>AuthentiPay AI - Final Fix</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
-:root { --p: #0ea5e9; --d: #0f172a; --w: #ffffff; --warn: #f43f5e; }
-body { margin:0; font-family:'Inter', sans-serif; background: var(--d); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; text-align: center; color: #fff; }
-.box { width:100%; max-width:400px; background:var(--w); border-radius:35px; padding:30px; color: #1e293b; box-shadow:0 30px 60px rgba(0,0,0,0.9); position: relative; }
+:root { --p: #0ea5e9; --d: #0f172a; --w: #ffffff; }
+body { margin:0; font-family:'Segoe UI', sans-serif; background: var(--d); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; color: #1e293b; text-align: center; }
+.box { width:100%; max-width:380px; background:var(--w); border-radius:30px; padding:30px; box-shadow:0 25px 50px rgba(0,0,0,0.5); }
 
-/* SCANNER STYLING */
-.viewport { position: relative; width: 100%; border-radius: 20px; overflow-y: auto; background: #000; margin: 20px auto; border: 3px solid var(--p); max-height: 400px; display: none; }
-#prev { width: 100%; height: auto; display: block; }
-.line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: var(--p); box-shadow: 0 0 20px var(--p); animation: s 2.5s infinite linear; z-index: 5; }
+/* FIXED VIEWPORT */
+#vBox { width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin: 20px 0; border: 3px solid var(--p); display: none; position: relative; }
+#vid, #prev { width: 100%; height: auto; display: block; }
+.line { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--p); box-shadow: 0 0 15px var(--p); animation: s 2s infinite linear; }
 @keyframes s { 0% { top: 0%; } 100% { top: 100%; } }
 
-.btn { width: 100%; padding: 18px; border-radius: 20px; border: none; font-weight: 1000; cursor: pointer; margin-top: 15px; font-size: 14px; text-transform: uppercase; display: block; transition: 0.3s; }
-.b-m { background: var(--p); color: #fff; box-shadow: 0 10px 20px rgba(14, 165, 233, 0.4); }
-.b-a { background: #f8fafc; color: var(--d); border: 2px solid #e2e8f0; }
+.btn { width: 100%; padding: 16px; border-radius: 15px; border: none; font-weight: 800; cursor: pointer; margin-top: 12px; font-size: 14px; text-transform: uppercase; transition: 0.2s; }
+.b-m { background: var(--p); color: #fff; }
+.b-a { background: #f1f5f9; color: var(--d); }
 
-.dash { background: #f8fafc; border-radius: 25px; padding: 20px; margin-top: 25px; border: 1px solid #e2e8f0; }
-.val { font-size: 38px; font-weight: 1000; color: var(--d); letter-spacing: -2px; }
+.dash { background: #f8fafc; border-radius: 20px; padding: 15px; margin-top: 20px; border: 1px solid #e2e8f0; }
+.val { font-size: 32px; font-weight: 900; color: var(--d); }
 
-#res { margin-top: 25px; padding: 20px; border: 3px dashed #e2e8f0; border-radius: 25px; display: none; background: #fff; }
-.row { display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: 800; font-size: 13px; color: #64748b; }
-.row span { color: var(--d); font-weight: 900; }
-
-#over { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); display: none; place-items: center; z-index: 100; backdrop-filter: blur(15px); }
-.mod { background: #fff; padding: 40px; border-radius: 40px; width: 85%; text-align: center; color: #1e293b; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+#over { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; place-items: center; z-index: 100; backdrop-filter: blur(10px); }
+.mod { background: #fff; padding: 30px; border-radius: 25px; width: 80%; }
 </style>
 </head>
 <body>
 
 <div class="box">
-  <h2 style="margin:0; font-weight: 1000; font-size: 30px; letter-spacing: -1.5px; color: #000;">AuthentiPay <span style="color:var(--p)">AI</span></h2>
-  <p style="font-size: 10px; color: #94a3b8; font-weight: 900; letter-spacing: 2px; margin-bottom: 20px;">DEEP SCAN TECHNOLOGY</p>
+  <h2 style="margin:0; font-weight: 900; color: #000;">AuthentiPay <span style="color:var(--p)">AI</span></h2>
+  <p style="font-size: 10px; color: #64748b; font-weight: 700; letter-spacing: 1px;">PRECISION VERIFIER</p>
 
   <div id="ui">
-    <button class="btn b-m" onclick="cam()">OPEN SCANNER</button>
-    <button class="btn b-a" onclick="document.getElementById('in').click()">UPLOAD FROM GALLERY</button>
+    <button class="btn b-m" onclick="startCam()">OPEN SCANNER</button>
+    <button class="btn b-a" onclick="document.getElementById('fileIn').click()">UPLOAD RECEIPT</button>
   </div>
-  <input type="file" id="in" hidden accept="image/*">
+  <input type="file" id="fileIn" hidden accept="image/*">
 
-  <div class="viewport" id="vBox">
+  <div id="vBox">
     <div class="line"></div>
-    <video id="vid" autoplay playsinline style="width:100%; height:auto;"></video>
+    <video id="vid" autoplay playsinline></video>
     <img id="prev" style="display:none">
   </div>
-  <button id="snap" class="btn b-m" style="display:none">VERIFY NOW</button>
+  <button id="snap" class="btn b-m" style="display:none" onclick="capture()">VERIFY NOW</button>
 
   <div class="dash">
-    <div style="font-size: 11px; color: #64748b; font-weight: 900; text-transform: uppercase;">Business Revenue</div>
-    <div class="val" id="rD">₹0.00</div>
-  </div>
-
-  <div id="res">
-    <div class="row">Status: <span id="sStat">-</span></div>
-    <div class="row">Amount: <span id="sAmt">₹0.00</span></div>
-    <div class="row">UPI / ID: <span id="sUpi">None</span></div>
+    <div style="font-size: 11px; color: #64748b; font-weight: 700;">TOTAL REVENUE</div>
+    <div class="val" id="totalDisp">₹0.00</div>
   </div>
 </div>
 
 <div id="over">
   <div class="mod">
-    <div id="iC" style="font-size: 80px; margin-bottom: 20px;"></div>
-    <h2 id="mT" style="margin: 0; font-weight: 1000;"></h2>
-    <p id="mX" style="color: #64748b; margin: 15px 0 30px; font-weight: 700; font-size: 14px;"></p>
+    <div id="ico" style="font-size: 60px;"></div>
+    <h2 id="tit" style="margin: 10px 0;"></h2>
+    <p id="txt" style="color: #64748b; font-size: 14px; margin-bottom: 20px;"></p>
     <button class="btn b-m" onclick="location.reload()">NEXT SCAN</button>
   </div>
 </div>
@@ -75,110 +65,81 @@ body { margin:0; font-family:'Inter', sans-serif; background: var(--d); display:
 <canvas id="can" hidden></canvas>
 
 <script>
-let s = JSON.parse(localStorage.getItem('ap_deep_v1')) || { t: 0 };
-let st = null;
+let store = JSON.parse(localStorage.getItem('ap_final_fix_v2')) || { total: 0 };
+let stream = null;
 
-const talk = (t) => { 
-  window.speechSynthesis.cancel(); 
-  const u = new SpeechSynthesisUtterance(t); 
-  u.lang = 'en-US'; 
-  u.rate = 0.9; 
-  window.speechSynthesis.speak(u); 
-};
+totalDisp.innerText = `₹${store.total.toLocaleString('en-IN')}`;
 
-rD.innerText = `₹${s.t.toLocaleString('en-IN')}`;
-
-async function cam() {
-  st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 } } });
-  vid.srcObject = st;
-  vBox.style.display = "block";
-  ui.style.display = "none";
-  snap.style.display = "block";
+async function startCam() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    vid.srcObject = stream;
+    vBox.style.display = "block";
+    ui.style.display = "none";
+    snap.style.display = "block";
+  } catch (e) { alert("Camera Error: " + e); }
 }
 
-snap.onclick = () => {
+function capture() {
   const ctx = can.getContext('2d');
   can.width = vid.videoWidth; can.height = vid.videoHeight;
-  ctx.filter = "contrast(2.0) grayscale(1) brightness(1.1)";
   ctx.drawImage(vid, 0, 0);
-  const d = can.toDataURL('image/jpeg', 1.0);
-  vid.style.display = "none"; prev.src = d; prev.style.display = "block";
+  const data = can.toDataURL('image/jpeg');
+  vid.style.display = "none";
+  prev.src = data;
+  prev.style.display = "block";
   snap.style.display = "none";
-  if(st) st.getTracks().forEach(t => t.stop());
-  deepRead(d);
-};
+  if(stream) stream.getTracks().forEach(t => t.stop());
+  process(data);
+}
 
-in.onchange = (e) => {
-  const f = e.target.files[0];
-  const r = new FileReader();
-  r.onload = (ex) => {
-    const img = new Image();
-    img.onload = () => {
-        can.width = img.width; can.height = img.height;
-        const ctx = can.getContext('2d');
-        ctx.filter = "contrast(2.0) grayscale(1)";
-        ctx.drawImage(img, 0, 0);
-        const finalData = can.toDataURL('image/jpeg', 1.0);
-        vBox.style.display = "block"; vid.style.display = "none";
-        prev.src = finalData; prev.style.display = "block";
-        ui.style.display = "none";
-        deepRead(finalData);
-    };
-    img.src = ex.target.result;
+fileIn.onchange = (e) => {
+  const reader = new FileReader();
+  reader.onload = (f) => {
+    vBox.style.display = "block";
+    prev.src = f.target.result;
+    prev.style.display = "block";
+    ui.style.display = "none";
+    process(f.target.result);
   };
-  r.readAsDataURL(f);
+  reader.readAsDataURL(e.target.files[0]);
 };
 
-async function deepRead(img) {
-  const w = await Tesseract.createWorker();
-  await w.loadLanguage('eng'); await w.initialize('eng');
-  const { data: { text } } = await w.recognize(img);
-  await w.terminate();
+async function process(imgData) {
+  const { data: { text } } = await Tesseract.recognize(imgData, 'eng');
   analyze(text);
 }
 
 function analyze(raw) {
-  const r = raw.toLowerCase().replace(/[\n\r]/g, " ");
+  const r = raw.toLowerCase();
   
-  // DEEP TEXT LOGIC
-  // 1. Contextual Amount Detection (Looks for large numbers and ₹)
-  let amt = 0;
-  const numbers = raw.match(/[\d,]+\.\d{2}/g) || raw.match(/₹\s?[\d,]+/g) || raw.match(/\d+[,.]\d+/g);
-  if(numbers) {
-      // Find the most likely amount (usually the largest number on the screen)
-      const parsedNums = numbers.map(n => parseFloat(n.replace(/[₹,\s]/g, ''))).filter(n => n > 0);
-      amt = Math.max(...parsedNums);
-  }
+  // DEEP DETECTION
+  const amtMatch = raw.match(/[\d,]+\.\d{2}/) || raw.match(/₹\s?[\d,]+/);
+  let amt = amtMatch ? parseFloat(amtMatch[0].replace(/[₹,\s]/g, '')) : 0;
+  
+  const hasUpi = r.includes('@') || r.includes('upi') || r.includes('vpa');
+  const hasTid = r.includes('ref') || r.includes('txn') || r.includes('trans') || /\d{12}/.test(r);
+  const isOk = (r.includes('success') || r.includes('paid') || r.includes('received') || r.includes('complete'));
 
-  // 2. Security Marker Detection
-  const upiFound = raw.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || r.includes('upi') || r.includes('@');
-  const tidFound = raw.match(/\d{10,14}/) || r.includes('ref') || r.includes('txn') || r.includes('id');
-  const statusFound = r.includes('success') || r.includes('paid') || r.includes('completed') || r.includes('credited');
-
-  res.style.display = "block";
-  sAmt.innerHTML = amt > 0 ? "✅ ₹" + amt : "❌ Missing";
-  sUpi.innerHTML = upiFound ? "✅ Detected" : "❌ Missing";
-  sStat.innerHTML = statusFound ? "✅ Valid Status" : "❌ Not Found";
-
-  const isReal = (amt > 0 && (upiFound || tidFound) && statusFound);
+  const isReal = (amt > 0 && hasUpi && hasTid && isOk);
 
   if(isReal) {
-    s.t += amt;
-    localStorage.setItem('ap_deep_v1', JSON.stringify(s));
-    rD.innerText = `₹${s.t.toLocaleString('en-IN')}`;
-    talk(`Verified transaction of ${amt} rupees.`);
-    showModal("✅", "REAL PAYMENT", `Transaction of ₹${amt} verified successfully.`);
+    store.total += amt;
+    localStorage.setItem('ap_final_fix_v2', JSON.stringify(store));
+    totalDisp.innerText = `₹${store.total.toLocaleString('en-IN')}`;
+    showModal("✅", "REAL PAYMENT", `Verified: ₹${amt}. All security markers found.`);
   } else {
-    talk("Alert! Receipt markers are missing. Could be fake.");
-    showModal("⚠️", "CHANCE OF FAKE", "This receipt lacks major security markers (UPI ID, Transaction ID, or Success status). Be careful.");
+    showModal("⚠️", "CHANCE OF FAKE", "UPI ID, Transaction ID, or Success status missing. Verify manually.");
   }
 }
 
-function showModal(ico, tit, txt) {
-    over.style.display = "grid";
-    iC.innerText = ico;
-    mT.innerText = tit;
-    mX.innerText = txt;
+function showModal(i, t, x) {
+  over.style.display = "grid";
+  ico.innerText = i;
+  tit.innerText = t;
+  txt.innerText = x;
+  const talk = new SpeechSynthesisUtterance(t === "REAL PAYMENT" ? "Payment verified." : "Warning, possible fake receipt.");
+  window.speechSynthesis.speak(talk);
 }
 </script>
 </body>

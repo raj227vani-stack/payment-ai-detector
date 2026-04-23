@@ -3,182 +3,199 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AuthentiPay AI - Ultimate Edition</title>
+<title>AuthentiPay AI - Pro Edition</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
-:root { --primary: #0ea5e9; --dark: #0f172a; --bg: #f8fafc; }
-body { margin:0; font-family:'Inter', sans-serif; background: var(--dark); display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding: 10px; color: #fff; }
-.container { width:100%; max-width:450px; background:#fff; border-radius:30px; padding:20px; color: #1e293b; box-shadow:0 30px 60px rgba(0,0,0,0.5); margin-top: 10px; position: relative; }
+:root { --primary: #0ea5e9; --dark: #0f172a; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
+body { margin:0; font-family:'Inter', sans-serif; background: var(--dark); display:flex; justify-content:center; align-items:center; min-height:100vh; padding: 20px; color: #1e293b; }
+.container { width:100%; max-width:420px; background:white; border-radius:32px; padding:30px; box-shadow:0 40px 80px rgba(0,0,0,0.6); text-align:center; position: relative; }
 
-/* FULL RESOLUTION VIEWPORT */
-.scanner-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-top: 15px; border: 2px solid var(--primary); min-height: 350px; max-height: 75vh; display: none; }
-video, #preview { width: 100%; height: auto; max-height: 75vh; object-fit: contain; display: block; margin: auto; }
+/* Scanner & Preview */
+.scanner-container { position: relative; width: 100%; border-radius: 24px; overflow: hidden; background: #f1f5f9; margin-top: 20px; border: 2px solid #e2e8f0; display: none; aspect-ratio: 4/5; }
+video, #preview { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.scan-line { position: absolute; top: 10%; left: 0; width: 100%; height: 3px; background: var(--primary); box-shadow: 0 0 15px var(--primary); animation: scan-action 2s infinite linear; z-index: 10; display: none; }
+@keyframes scan-action { 0% { top: 10%; } 100% { top: 90%; } }
 
-.scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--primary); box-shadow: 0 0 20px var(--primary); animation: full-scan 2.5s infinite linear; z-index: 10; display: none; }
-@keyframes full-scan { 0% { top: 0%; } 100% { top: 100%; } }
+/* Controls */
+.btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px; }
+.btn { padding: 16px; border-radius: 16px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; }
+.btn-cam { background: var(--primary); color: white; }
+.btn-up { background: #e2e8f0; color: var(--dark); }
+.btn-capture { background: var(--dark); color: white; width: 100%; margin-top: 15px; display: none; border-radius: 16px; }
 
-/* LANGUAGE BOX & UI */
-.top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.lang-box { background: #f1f5f9; padding: 6px 12px; border-radius: 12px; font-weight: 800; font-size: 11px; border: 1px solid #e2e8f0; }
-select { border:none; background:none; font-weight:800; color:var(--primary); cursor:pointer; outline:none; }
+/* Dashboard - Updated to Total Revenue */
+.dashboard { margin-top: 30px; background: var(--bg); border-radius: 24px; padding: 20px; text-align: left; border: 1px solid #edf2f7; }
+.dash-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
+.dash-val { font-size: 24px; font-weight: 800; color: var(--dark); margin-bottom: 15px; }
 
-.btn { width: 100%; padding: 16px; border-radius: 18px; border: none; font-weight: 800; font-size: 14px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
-.btn-secondary { background: #f1f5f9; color: var(--dark); border: 1px solid #e2e8f0; }
-
-.dashboard { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 15px; margin-top: 15px; }
-.rev-val { font-size: 26px; font-weight: 900; color: var(--dark); }
-
-/* RESULT PANEL */
-#detailsPanel { margin-top: 15px; background: #fff; border: 2px dashed var(--primary); border-radius: 20px; padding: 15px; display: none; }
-.row { display: flex; justify-content: space-between; font-size: 12px; margin: 5px 0; font-weight: 700; color: #64748b; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
-.row span { color: var(--dark); font-weight: 900; text-align: right; }
-
-#pop { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; place-items: center; z-index: 1000; backdrop-filter: blur(10px); }
-.pop-card { background: #fff; padding: 35px; border-radius: 35px; width: 80%; text-align: center; }
+#popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px); }
+.popup-card { background: white; padding: 35px; border-radius: 32px; width: 85%; max-width: 340px; text-align: center; }
+#soundBtn { position: absolute; top: 20px; right: 20px; background: #f1f5f9; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="top-nav">
-    <div class="lang-box">
-      AI VOICE: <select id="vLang"><option value="hi-IN">HINDI</option><option value="en-US">ENGLISH</option></select>
-    </div>
-    <button id="sBtn" style="border:none; background:none; font-size:20px; cursor:pointer;" onclick="tglSnd()">🔊</button>
+  <button id="soundBtn" onclick="toggleSound()">🔊</button>
+  <h2 style="margin:0; font-size: 26px; font-weight: 800;">AuthentiPay <span style="color:var(--primary);">AI</span></h2>
+  <p style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Payment Guardian</p>
+
+  <div class="btn-group" id="mainBtns">
+    <button class="btn btn-cam" onclick="startScanner()">LIVE SCAN</button>
+    <button class="btn btn-up" onclick="document.getElementById('fileIn').click()">UPLOAD</button>
   </div>
+  <input type="file" id="fileIn" accept="image/*" style="display:none">
 
-  <h2 style="margin:0; font-size: 26px; font-weight: 900; color:var(--dark);">AuthentiPay <span style="color:var(--primary);">AI</span></h2>
-  <p style="font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Full Scale Smart Scanner</p>
-
-  <div id="initBtns">
-    <button class="btn btn-primary" onclick="initCam()">LIVE CAMERA SCAN</button>
-    <button class="btn btn-secondary" onclick="document.getElementById('fIn').click()">UPLOAD FULL SCREENSHOT</button>
-  </div>
-  <input type="file" id="fIn" hidden accept="image/*">
-
-  <div class="scanner-container" id="sBox">
+  <div class="scanner-container" id="sContainer">
     <div class="scan-line" id="sLine"></div>
-    <video id="v" autoplay playsinline></video>
-    <img id="p" style="display:none">
+    <video id="video" autoplay playsinline></video>
+    <img id="preview" alt="Preview Image" style="display:none;">
   </div>
-  <button id="capBtn" class="btn btn-primary" style="display:none">VALIDATE & EXTRACT</button>
+  <button id="captureBtn" class="btn btn-capture">VERIFY NOW</button>
+
+  <div id="status" style="margin-top:20px; font-weight: 800; color: var(--primary); font-size: 11px;">SYSTEM READY</div>
 
   <div class="dashboard">
-    <div style="font-size: 10px; color: #94a3b8; font-weight: 800; letter-spacing: 1px;">TOTAL BUSINESS REVENUE</div>
-    <div id="rev" class="rev-val">₹0.00</div>
-  </div>
-
-  <div id="detailsPanel">
-    <div class="row">Customer/Party: <span id="rName">-</span></div>
-    <div class="row">Amount Detected: <span id="rAmt">-</span></div>
-    <div class="row">Transaction ID: <span id="rID">-</span></div>
+    <div class="dash-label">Total Revenue</div>
+    <div id="dTotal" class="dash-val">₹0.00</div>
+    <div style="display: flex; justify-content: space-between;">
+        <div><div class="dash-label">Success</div><div id="dCount" class="dash-val" style="font-size: 18px; color: var(--success); margin:0;">0</div></div>
+        <div><div class="dash-label">Blocked</div><div id="dFake" class="dash-val" style="font-size: 18px; color: var(--danger); margin:0;">0</div></div>
+    </div>
   </div>
 </div>
 
-<div id="pop">
-  <div class="pop-card">
-    <div id="pIcon" style="font-size:60px;"></div>
-    <h2 id="pTitle" style="font-weight:900; margin:15px 0; color:var(--dark);"></h2>
-    <button class="btn btn-primary" onclick="location.reload()">NEXT SCAN</button>
+<div id="popup">
+  <div class="popup-card">
+    <div id="popIcon" style="font-size: 55px; margin-bottom: 10px;"></div>
+    <h3 id="popTitle" style="margin:0; font-size: 22px; font-weight: 800;"></h3>
+    <div id="popDetails" style="margin: 20px 0; text-align: left; background: #f8fafc; padding: 18px; border-radius: 16px; font-size: 13px; line-height: 1.6;"></div>
+    <button class="btn btn-cam" style="width: 100%;" onclick="location.reload()">NEXT CUSTOMER</button>
   </div>
 </div>
 
-<canvas id="c" hidden></canvas>
+<canvas id="processingCanvas" style="display:none"></canvas>
 
 <script>
-let state = JSON.parse(localStorage.getItem('ap_ultra_v5')) || { rev: 0 };
-let snd = true;
-let strm = null;
+let stats = JSON.parse(localStorage.getItem('ap_pro_v5')) || { total: 0, count: 0, fake: 0 };
+let txnLog = JSON.parse(localStorage.getItem('ap_log_v5')) || [];
+let stream = null;
+let isSoundOn = true;
 
-const tglSnd = () => { snd = !snd; sBtn.innerText = snd ? "🔊" : "🔈"; };
-const speak = (m) => { 
-  if(snd) { 
-    window.speechSynthesis.cancel(); 
-    const u = new SpeechSynthesisUtterance(m); 
-    u.lang = vLang.value; 
-    u.rate = 0.9; 
-    window.speechSynthesis.speak(u); 
-  } 
-};
+function toggleSound() { isSoundOn = !isSoundOn; document.getElementById('soundBtn').innerText = isSoundOn ? "🔊" : "🔈"; }
+function speak(msg) { if(isSoundOn) { window.speechSynthesis.cancel(); const s = new SpeechSynthesisUtterance(msg); s.rate=0.9; window.speechSynthesis.speak(s); } }
 
-rev.innerText = `₹${state.rev.toLocaleString('en-IN')}`;
+function updateUI() {
+  document.getElementById('dTotal').innerText = `₹${stats.total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+  document.getElementById('dCount').innerText = stats.count;
+  document.getElementById('dFake').innerText = stats.fake;
+  localStorage.setItem('ap_pro_v5', JSON.stringify(stats));
+  localStorage.setItem('ap_log_v5', JSON.stringify(txnLog));
+}
+updateUI();
 
-async function initCam() {
+async function startScanner() {
   try {
-    strm = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 } } });
-    v.srcObject = strm;
-    sBox.style.display = "block";
-    initBtns.style.display = "none";
-    capBtn.style.display = "block";
-    sLine.style.display = "block";
-  } catch(e) { alert("Camera Error"); }
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: 1280 } });
+    document.getElementById('video').srcObject = stream;
+    document.getElementById('sContainer').style.display = "block";
+    document.getElementById('video').style.display = "block";
+    document.getElementById('preview').style.display = "none";
+    document.getElementById('mainBtns').style.display = "none";
+    document.getElementById('captureBtn').style.display = "block";
+    document.getElementById('status').innerText = "CAPTURE RECEIPT";
+  } catch (e) { alert("Camera Access Error"); }
 }
 
-capBtn.onclick = () => {
-  const ctx = c.getContext('2d');
-  c.width = v.videoWidth; 
-  c.height = v.videoHeight;
-  // SMART CROP + FILTERS
-  ctx.filter = "contrast(1.5) grayscale(1)";
-  ctx.drawImage(v, 0, 0, c.width, c.height);
+captureBtn.onclick = () => {
+  const canvas = document.getElementById('processingCanvas');
+  const video = document.getElementById('video');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const data = canvas.toDataURL('image/jpeg', 1.0);
   
-  const img = c.toDataURL('image/jpeg', 0.9);
-  v.style.display = "none"; p.src = img; p.style.display = "block";
-  capBtn.style.display = "none";
-  if(strm) strm.getTracks().forEach(t => t.stop());
-  doOCR(img);
+  video.style.display = "none";
+  const p = document.getElementById('preview');
+  p.src = data; p.style.display = "block";
+  document.getElementById('sLine').style.display = "block";
+  document.getElementById('captureBtn').style.display = "none";
+  if(stream) stream.getTracks().forEach(t => t.stop());
+  runOCR(data);
 };
 
-fIn.onchange = (e) => {
-  const r = new FileReader();
-  r.onload = (ex) => { 
-    sBox.style.display="block"; v.style.display="none"; 
-    p.src=ex.target.result; p.style.display="block"; 
-    initBtns.style.display="none"; sLine.style.display="block";
-    doOCR(ex.target.result); 
+fileIn.onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const data = event.target.result;
+    document.getElementById('sContainer').style.display = "block";
+    document.getElementById('video').style.display = "none";
+    const p = document.getElementById('preview');
+    p.src = data; p.style.display = "block"; // Fix: Image Preview for Upload
+    document.getElementById('mainBtns').style.display = "none";
+    document.getElementById('sLine').style.display = "block";
+    runOCR(data);
   };
-  r.readAsDataURL(e.target.files[0]);
+  reader.readAsDataURL(file);
 };
 
-async function doOCR(src) {
-  const wrk = await Tesseract.createWorker();
-  await wrk.loadLanguage('eng');
-  await wrk.initialize('eng');
-  const { data: { text } } = await wrk.recognize(src);
-  await wrk.terminate();
-  parse(text);
+async function runOCR(src) {
+  document.getElementById('status').innerText = "AUTHENTICATING...";
+  const { data: { text } } = await Tesseract.recognize(src, 'eng');
+  analyze(text);
 }
 
-function parse(txt) {
-  const l = txt.toLowerCase();
-  const lang = vLang.value;
-
-  let amt = 0;
-  const matches = txt.match(/[\d,]+\.\d{2}/g);
-  if(matches) amt = parseFloat(matches.sort((a,b) => b.length - a.length)[0].replace(/,/g,''));
-
-  let name = (txt.match(/(?:To|From|Paid|Name|Received)\s*:?\s*([A-Z\s]{3,20})/i) || [null, "Verified Merchant"])[1].trim();
-  let id = (txt.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || txt.match(/\d{12}/) || ["Not Found"])[0];
-
-  const isOk = (l.includes('success') || l.includes('paid') || l.includes('received') || l.includes('completed')) && amt > 0;
-
-  detailsPanel.style.display = "block";
-  rName.innerText = name; rAmt.innerText = "₹" + amt; rID.innerText = id;
-
-  if(isOk) {
-    state.rev += amt;
-    localStorage.setItem('ap_ultra_v5', JSON.stringify(state));
-    rev.innerText = `₹${state.rev.toLocaleString('en-IN')}`;
-    speak(lang === "hi-IN" ? `${name} se ${amt} rupaye prapt hue` : `Received ${amt} rupees from ${name}`);
+function analyze(text) {
+  const t = text.toLowerCase();
+  
+  // --- SUPER-PRECISION AMOUNT LOGIC ---
+  let amount = 0;
+  let decimals = text.match(/\d{1,3}(?:,\d{3})*(?:\.\d{2})/g); // Matches 500.00, 1,200.50
+  
+  if(decimals) {
+      amount = parseFloat(decimals.sort((a,b) => b.length - a.length)[0].replace(/,/g,''));
   } else {
-    speak(lang === "hi-IN" ? "Payment verify nahi hua" : "Verification Failed");
+      let symbolMatch = text.match(/(?:₹|Rs|INR)\s*([\d,]+)/i);
+      if(symbolMatch) amount = parseFloat(symbolMatch[1].replace(/,/g,''));
   }
 
-  pop.style.display = "grid";
-  pIcon.innerText = isOk ? "✅" : "🛡️";
-  pTitle.innerText = isOk ? "Success" : "Alert";
+  // Recipient/Sender Detection
+  let partyMatch = text.match(/(?:Paid to|To|Transfer to|From|Received from|Beneficiary)\s*:?\s*([A-Z\s]{3,25})/i);
+  let partyName = partyMatch ? partyMatch[1].trim() : "Verified Merchant";
+
+  let txID = (text.match(/\d{12}/) || ["TXN"+Date.now()])[0];
+  let isDup = txnLog.includes(txID);
+  
+  const isReal = (t.match(/(success|completed|paid|received|successful)/)) && amount > 0 && !isDup;
+  
+  if(isReal) { 
+      stats.total += amount; stats.count++; txnLog.push(txID); 
+      speak(`Received ${amount} rupees from ${partyName}`);
+  } else if(isDup) {
+      speak("Warning! This transaction was already used.");
+  } else { 
+      stats.fake++; 
+      speak("Security alert! Pattern not recognized."); 
+  }
+  updateUI();
+
+  document.getElementById('popup').style.display = "flex";
+  const icon = document.getElementById('popIcon');
+  const title = document.getElementById('popTitle');
+  const det = document.getElementById('popDetails');
+
+  if(isDup) {
+    icon.innerText = "⚠️"; title.innerText = "Duplicate Entry";
+    det.innerHTML = `<strong>Alert:</strong> This Receipt was already scanned today.<br><strong>Ref ID:</strong> ${txID}`;
+  } else if(isReal) {
+    icon.innerText = "✅"; title.innerText = "Verified Authentic";
+    det.innerHTML = `<strong>Amount:</strong> ₹${amount.toLocaleString('en-IN')}<br><strong>Party:</strong> ${partyName}<br><strong>Ref ID:</strong> ${txID}`;
+  } else {
+    icon.innerText = "🛡️"; title.innerText = "Security Risk";
+    det.innerHTML = `<strong>Status:</strong> Rejected<br>Receipt patterns do not match standard banking security.`;
+  }
 }
 </script>
 </body>

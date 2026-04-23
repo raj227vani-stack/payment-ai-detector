@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AuthentiPay AI - Ultimate</title>
+<title>AuthentiPay AI - Deep Scan Edition</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
@@ -29,14 +29,14 @@ video, #preview { width: 100%; height: 100%; object-fit: contain; background: #0
 .dash-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
 .dash-val { font-size: 24px; font-weight: 800; color: var(--dark); margin-bottom: 12px; }
 
-/* Live Detection Panel (Niche display hone waala) */
+/* Result Panel */
 #liveDetails { margin-top: 15px; background: #fff; border: 2px dashed #e2e8f0; border-radius: 20px; padding: 15px; text-align: left; display: none; }
-.detail-item { font-size: 12px; margin-bottom: 5px; color: #64748b; font-weight: 600; }
-.detail-item span { color: var(--dark); font-weight: 800; float: right; }
+.detail-item { font-size: 12px; margin-bottom: 8px; color: #64748b; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.detail-item span { color: var(--dark); font-weight: 800; text-align: right; max-width: 60%; word-break: break-all; }
 
 #popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px); }
 .popup-card { background: white; padding: 35px; border-radius: 32px; width: 85%; max-width: 340px; text-align: center; }
-#soundBtn { position: absolute; top: 20px; right: 20px; background: #f1f5f9; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+#soundBtn { position: absolute; top: 20px; right: 20px; background: #f1f5f9; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 </style>
 </head>
 <body>
@@ -44,7 +44,7 @@ video, #preview { width: 100%; height: 100%; object-fit: contain; background: #0
 <div class="container">
   <button id="soundBtn" onclick="toggleSound()">🔊</button>
   <h2 style="margin:0; font-size: 26px; font-weight: 800;">AuthentiPay <span style="color:var(--primary);">AI</span></h2>
-  <p style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Secure Payment Guardian</p>
+  <p style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Deep Scanning Tech</p>
 
   <div class="btn-group" id="mainBtns">
     <button class="btn btn-cam" onclick="startScanner()">LIVE SCAN</button>
@@ -55,9 +55,9 @@ video, #preview { width: 100%; height: 100%; object-fit: contain; background: #0
   <div class="scanner-container" id="sContainer">
     <div class="scan-line" id="sLine"></div>
     <video id="video" autoplay playsinline></video>
-    <img id="preview" alt="Preview Image" style="display:none;">
+    <img id="preview" alt="Deep Scan Preview" style="display:none;">
   </div>
-  <button id="captureBtn" class="btn btn-capture">VERIFY NOW</button>
+  <button id="captureBtn" class="btn btn-capture">ANALYZE IMAGE</button>
 
   <div id="status" style="margin-top:20px; font-weight: 800; color: var(--primary); font-size: 11px;">SYSTEM READY</div>
 
@@ -66,14 +66,14 @@ video, #preview { width: 100%; height: 100%; object-fit: contain; background: #0
     <div id="dTotal" class="dash-val">₹0.00</div>
     <div style="display: flex; justify-content: space-between;">
         <div><div class="dash-label">Success</div><div id="dCount" class="dash-val" style="font-size: 18px; color: var(--success); margin:0;">0</div></div>
-        <div><div class="dash-label">Risks</div><div id="dFake" class="dash-val" style="font-size: 18px; color: var(--danger); margin:0;">0</div></div>
+        <div><div class="dash-label">Blocked</div><div id="dFake" class="dash-val" style="font-size: 18px; color: var(--danger); margin:0;">0</div></div>
     </div>
   </div>
 
   <div id="liveDetails">
     <div class="detail-item">Party Name <span id="resName">-</span></div>
-    <div class="detail-item">Amount Detect <span id="resAmt">-</span></div>
-    <div class="detail-item">UPI/Ref ID <span id="resID">-</span></div>
+    <div class="detail-item">Amount <span id="resAmt">-</span></div>
+    <div class="detail-item">ID/UPI <span id="resID">-</span></div>
   </div>
 </div>
 
@@ -81,39 +81,39 @@ video, #preview { width: 100%; height: 100%; object-fit: contain; background: #0
   <div class="popup-card">
     <div id="popIcon" style="font-size: 55px; margin-bottom: 10px;"></div>
     <h3 id="popTitle" style="margin:0; font-size: 22px; font-weight: 800;"></h3>
-    <div id="popMsg" style="margin: 20px 0; font-size: 14px; color: #64748b;"></div>
-    <button class="btn btn-cam" style="width: 100%;" onclick="location.reload()">NEXT CUSTOMER</button>
+    <div id="popMsg" style="margin: 20px 0; font-size: 14px; color: #64748b; line-height: 1.5;"></div>
+    <button class="btn btn-cam" style="width: 100%;" onclick="location.reload()">NEXT SCAN</button>
   </div>
 </div>
 
 <canvas id="processingCanvas" style="display:none"></canvas>
 
 <script>
-let stats = JSON.parse(localStorage.getItem('ap_final_v1')) || { total: 0, count: 0, fake: 0 };
-let txnLog = JSON.parse(localStorage.getItem('ap_log_v1')) || [];
-let stream = null;
+let stats = JSON.parse(localStorage.getItem('ap_deep_v1')) || { total: 0, count: 0, fake: 0 };
+let txnLog = JSON.parse(localStorage.getItem('ap_log_deep_v1')) || [];
 let isSoundOn = true;
+let stream = null;
 
 function toggleSound() { isSoundOn = !isSoundOn; document.getElementById('soundBtn').innerText = isSoundOn ? "🔊" : "🔈"; }
-function speak(msg) { if(isSoundOn) { window.speechSynthesis.cancel(); const s = new SpeechSynthesisUtterance(msg); s.rate=0.95; window.speechSynthesis.speak(s); } }
+function speak(msg) { if(isSoundOn) { window.speechSynthesis.cancel(); const s = new SpeechSynthesisUtterance(msg); s.rate=0.9; window.speechSynthesis.speak(s); } }
 
 function updateUI() {
   document.getElementById('dTotal').innerText = `₹${stats.total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
   document.getElementById('dCount').innerText = stats.count;
   document.getElementById('dFake').innerText = stats.fake;
-  localStorage.setItem('ap_final_v1', JSON.stringify(stats));
-  localStorage.setItem('ap_log_v1', JSON.stringify(txnLog));
+  localStorage.setItem('ap_deep_v1', JSON.stringify(stats));
+  localStorage.setItem('ap_log_deep_v1', JSON.stringify(txnLog));
 }
 updateUI();
 
 async function startScanner() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: 1280 } });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 } } });
     document.getElementById('video').srcObject = stream;
     document.getElementById('sContainer').style.display = "block";
     document.getElementById('mainBtns').style.display = "none";
     document.getElementById('captureBtn').style.display = "block";
-  } catch (e) { alert("Camera Access Denied"); }
+  } catch (e) { alert("Camera Permission Required"); }
 }
 
 captureBtn.onclick = () => {
@@ -121,8 +121,11 @@ captureBtn.onclick = () => {
   const video = document.getElementById('video');
   canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
-  ctx.filter = "contrast(1.2) grayscale(0.2)";
+  
+  // BIOMETRIC STYLE PRE-PROCESSING
+  ctx.filter = "contrast(1.5) grayscale(1) brightness(1.0)";
   ctx.drawImage(video, 0, 0);
+  
   const data = canvas.toDataURL('image/jpeg', 1.0);
   video.style.display = "none";
   document.getElementById('preview').src = data;
@@ -130,7 +133,7 @@ captureBtn.onclick = () => {
   document.getElementById('sLine').style.display = "block";
   document.getElementById('captureBtn').style.display = "none";
   if(stream) stream.getTracks().forEach(t => t.stop());
-  runOCR(data);
+  runDeepScan(data);
 };
 
 fileIn.onchange = (e) => {
@@ -140,70 +143,78 @@ fileIn.onchange = (e) => {
   reader.onload = (ev) => {
     document.getElementById('sContainer').style.display = "block";
     document.getElementById('video').style.display = "none";
-    const p = document.getElementById('preview');
-    p.src = ev.target.result; p.style.display = "block";
+    document.getElementById('preview').src = ev.target.result;
+    document.getElementById('preview').style.display = "block";
     document.getElementById('mainBtns').style.display = "none";
-    runOCR(ev.target.result);
+    runDeepScan(ev.target.result);
   };
   reader.readAsDataURL(file);
 };
 
-async function runOCR(src) {
-  document.getElementById('status').innerText = "AI EXTRACTING...";
-  const { data: { text } } = await Tesseract.recognize(src, 'eng');
+async function runDeepScan(src) {
+  document.getElementById('status').innerText = "CORE SCANNING...";
+  const worker = await Tesseract.createWorker();
+  await worker.loadLanguage('eng');
+  await worker.initialize('eng');
+  // Setting high threshold for cleaner results
+  await worker.setParameters({ tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz₹,.@' });
+  
+  const { data: { text } } = await worker.recognize(src);
+  await worker.terminate();
   analyze(text);
 }
 
 function analyze(text) {
   const t = text.toLowerCase();
   
-  // 1. Improved Amount Detection
+  // 1. ADVANCED AMOUNT DETECTION (Smart Filter)
   let amount = 0;
-  let matches = text.match(/[\d,]+\.\d{2}/g); // Matches decimals like 500.00
-  if(matches) {
-    amount = parseFloat(matches.sort((a,b) => b.length - a.length)[0].replace(/,/g,''));
-  } else {
-    let altMatch = text.match(/(?:₹|Rs|INR)\s*([\d,]+)/i);
-    if(altMatch) amount = parseFloat(altMatch[1].replace(/,/g,''));
+  let currencyMatches = text.match(/(?:₹|Rs|INR)\s*([\d,]+\.\d{2})|([\d,]+\.\d{2})/gi);
+  if(currencyMatches) {
+      // Find the one that looks most like a payment (usually the largest decimal)
+      let cleanAmounts = currencyMatches.map(a => parseFloat(a.replace(/[^\d.]/g, ''))).filter(a => a > 0);
+      amount = Math.max(...cleanAmounts);
   }
 
-  // 2. Paid To / Received From Logic
-  let partyMatch = text.match(/(?:Paid to|To|Transfer to|From|Received from|Beneficiary)\s*:?\s*([A-Z\s]{3,20})/i);
-  let partyName = partyMatch ? partyMatch[1].trim() : "Verified Customer";
+  // 2. DEEP PARTY DETECTION (Paid To / Received From)
+  let party = "Verified Merchant";
+  let nameMatch = text.match(/(?:Paid to|To|From|Received from|Sender|Receiver|Beneficiary)\s*:?\s*([A-Z\s]{3,20})/i);
+  if(nameMatch) party = nameMatch[1].trim();
 
-  // 3. UPI / Ref ID Detection
-  let upiMatch = text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || text.match(/\d{12}/);
-  let upiID = upiMatch ? upiMatch[0] : "Not Found";
-
-  let txID = (text.match(/\d{12}/) || ["TXN"+Date.now()])[0];
-  let isDup = txnLog.includes(txID);
+  // 3. TRANSACTION IDENTITY (UPI / REF)
+  let upi = (text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || ["Unknown UPI"])[0];
+  let refID = (text.match(/\d{12}/) || ["TXID"+Date.now()])[0];
   
-  // 4. Revenue Logic: Sirf "Received/Success" hone par hi paise add honge
-  const isReceived = t.includes('received') || t.includes('success') || t.includes('paid');
-  const isReal = isReceived && amount > 0 && !isDup;
+  let isDup = txnLog.includes(refID);
+  
+  // 4. ENTERPRISE LOGIC: Double verification
+  const statusKeywords = t.match(/(success|paid|completed|received|successful)/);
+  const isReal = (statusKeywords && amount > 0) && !isDup;
 
-  // Niche waale panel mein display
+  // DISPLAY UPDATES
   document.getElementById('liveDetails').style.display = "block";
-  document.getElementById('resName').innerText = partyName;
+  document.getElementById('resName').innerText = party;
   document.getElementById('resAmt').innerText = "₹" + amount;
-  document.getElementById('resID').innerText = upiID;
+  document.getElementById('resID').innerText = upi !== "Unknown UPI" ? upi : refID;
 
   if(isReal) {
-      stats.total += amount; stats.count++; txnLog.push(txID);
-      speak(`Received ${amount} rupees from ${partyName}`);
+      stats.total += amount; stats.count++; txnLog.push(refID);
+      speak(`Received ${amount} rupees from ${party}`);
   } else if(isDup) {
-      speak("Warning! Duplicate transaction.");
+      speak("Transaction already registered.");
   } else {
       stats.fake++;
-      speak("Security risk detected.");
+      speak("Verification failed. Blocked.");
   }
   updateUI();
 
-  // Popup logic
+  // POPUP
   document.getElementById('popup').style.display = "flex";
   document.getElementById('popIcon').innerText = isReal ? "✅" : "🛡️";
-  document.getElementById('popTitle').innerText = isReal ? "Verified Authentic" : "Security Alert";
-  document.getElementById('popMsg').innerText = isReal ? `Successfully verified transaction of ₹${amount}` : `This receipt pattern is not recognized as a valid payment.`;
+  document.getElementById('popTitle').innerText = isReal ? "Verified" : "Risk Detected";
+  document.getElementById('popMsg').innerHTML = isReal ? 
+    `Payment of <b>₹${amount}</b> from <b>${party}</b> is confirmed.` : 
+    `Security scan could not verify this receipt. Possible mismatch or scan error.`;
 }
 </script>
 </body>

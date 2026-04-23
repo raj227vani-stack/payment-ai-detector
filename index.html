@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AuthentiPay AI</title>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
@@ -25,7 +24,6 @@ body{
   box-shadow:0 20px 40px rgba(0,0,0,0.2);
   text-align:center;
 }
-h2{margin:0;}
 img{width:100%;border-radius:12px;margin-top:10px;}
 .result{margin-top:10px;padding:12px;border-radius:10px;font-weight:bold;}
 .real{background:#dcfce7;color:#166534;}
@@ -33,6 +31,7 @@ img{width:100%;border-radius:12px;margin-top:10px;}
 .info{font-size:13px;color:#64748b;margin-top:5px;}
 button,input{margin-top:10px;padding:8px;}
 </style>
+
 </head>
 
 <body>
@@ -42,9 +41,7 @@ button,input{margin-top:10px;padding:8px;}
 
 <input type="file" id="upload" accept="image/*">
 
-<label>
-<input type="checkbox" id="soundToggle" checked> Sound ON
-</label>
+<button id="resetBtn" style="display:none;">Upload New</button>
 
 <img id="preview" style="display:none;">
 
@@ -60,11 +57,7 @@ let preview=document.getElementById("preview");
 let resultDiv=document.getElementById("result");
 let statusText=document.getElementById("status");
 let details=document.getElementById("details");
-let soundOn=true;
-
-document.getElementById("soundToggle").onchange=e=>{
-  soundOn=e.target.checked;
-};
+let resetBtn=document.getElementById("resetBtn");
 
 // upload
 document.getElementById("upload").addEventListener("change",e=>{
@@ -79,9 +72,17 @@ document.getElementById("upload").addEventListener("change",e=>{
   };
 });
 
-// main OCR
-async function process(img){
+// reset
+resetBtn.onclick=()=>{
+  preview.style.display="none";
+  resultDiv.innerHTML="Waiting...";
+  details.innerHTML="";
+  statusText.innerText="Upload a receipt";
+  resetBtn.style.display="none";
+};
 
+// OCR
+async function process(img){
   statusText.innerText="Scanning...";
 
   const { data:{ text } } = await Tesseract.recognize(img,'eng');
@@ -93,24 +94,25 @@ async function process(img){
 function analyze(text){
 
   let t=text.toLowerCase();
-
   let score=0;
 
-  // rules
   if(/\w+@\w+/.test(t)) score+=2;
-  if(/₹\s?\d+/.test(t)) score+=2;
+  if(/(₹|rs\.?|inr)\s?\d+[,\d]*/.test(t)) score+=2;
   if(/\d{12,16}/.test(t)) score+=2;
-  if(t.includes("success") || t.includes("paid")) score+=2;
-  if(t.includes("phonepe")||t.includes("gpay")||t.includes("paytm")||t.includes("bhim")) score+=1;
+  if(t.includes("success")||t.includes("paid")) score+=2;
+  if(t.includes("phonepe")||t.includes("gpay")||t.includes("paytm")) score+=1;
 
   let prob=score/9;
   let confidence=Math.round(prob*100);
-
   let isReal=prob>0.5;
 
-  // extract data
-  let amount=(t.match(/₹\s?\d+/)||["Not found"])[0];
-  let upi=(t.match(/\w+@\w+/)||["Not found"])[0];
+  // 🔥 improved extraction
+  let amountMatch=t.match(/(₹|rs\.?|inr)\s?\d+[,\d]*/);
+  let upiMatch=t.match(/[a-z0-9._%+-]+@[a-z0-9.-]+/);
+
+  let amount=amountMatch?amountMatch[0]:"Not detected";
+  let upi=upiMatch?upiMatch[0]:"Not detected";
+
   let risk=prob>0.7?"LOW":prob>0.5?"MEDIUM":"HIGH";
 
   resultDiv.className="result "+(isReal?"real":"fake");
@@ -127,21 +129,7 @@ function analyze(text){
   `;
 
   statusText.innerText="Done";
-
-  speak(isReal,confidence);
-}
-
-// voice
-function speak(isReal,conf){
-
-  if(!soundOn) return;
-
-  let msg=isReal
-  ? `Payment verified with ${conf} percent confidence`
-  : `Suspicious payment detected`;
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
+  resetBtn.style.display="block";
 }
 
 </script>

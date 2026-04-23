@@ -3,182 +3,177 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AuthentiPay AI - Ultimate Edition</title>
+<title>AuthentiPay AI - Trained Engine</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
-:root { --primary: #0ea5e9; --dark: #0f172a; --bg: #f8fafc; }
-body { margin:0; font-family:'Inter', sans-serif; background: var(--dark); display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding: 10px; color: #fff; }
-.container { width:100%; max-width:450px; background:#fff; border-radius:30px; padding:20px; color: #1e293b; box-shadow:0 30px 60px rgba(0,0,0,0.5); margin-top: 10px; position: relative; }
+:root { --primary: #0ea5e9; --dark: #0f172a; --bg: #ffffff; }
+body { margin:0; font-family:'Inter', sans-serif; background: var(--dark); color: #fff; display: flex; justify-content: center; padding: 10px; }
+.container { width:100%; max-width:420px; background:var(--bg); border-radius:30px; padding:25px; color: #1e293b; box-shadow:0 30px 60px rgba(0,0,0,0.8); }
 
-/* FULL RESOLUTION VIEWPORT */
-.scanner-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-top: 15px; border: 2px solid var(--primary); min-height: 350px; max-height: 75vh; display: none; }
-video, #preview { width: 100%; height: auto; max-height: 75vh; object-fit: contain; display: block; margin: auto; }
+/* RESOLUTION & CROP ENGINE */
+.scanner-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin: 15px 0; border: 3px solid var(--primary); min-height: 420px; max-height: 70vh; display: none; }
+video, #preview { width: 100%; height: 100%; object-fit: contain; display: block; margin: auto; }
+.scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: var(--primary); box-shadow: 0 0 20px var(--primary); animation: scan 2s infinite linear; z-index: 5; }
+@keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
 
-.scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--primary); box-shadow: 0 0 20px var(--primary); animation: full-scan 2.5s infinite linear; z-index: 10; display: none; }
-@keyframes full-scan { 0% { top: 0%; } 100% { top: 100%; } }
+.top-bar { display: flex; justify-content: space-between; align-items: center; }
+.lang-chip { background: #f1f5f9; padding: 10px 15px; border-radius: 15px; font-size: 11px; font-weight: 900; color: var(--primary); }
+select { border: none; background: transparent; cursor: pointer; color: inherit; font-weight: inherit; outline: none; }
 
-/* LANGUAGE BOX & UI */
-.top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.lang-box { background: #f1f5f9; padding: 6px 12px; border-radius: 12px; font-weight: 800; font-size: 11px; border: 1px solid #e2e8f0; }
-select { border:none; background:none; font-weight:800; color:var(--primary); cursor:pointer; outline:none; }
+.btn { width: 100%; padding: 18px; border-radius: 20px; border: none; font-weight: 950; cursor: pointer; margin-top: 12px; transition: 0.3s; font-size: 14px; text-transform: uppercase; }
+.btn-main { background: var(--primary); color: #fff; }
+.btn-alt { background: #f8fafc; color: var(--dark); border: 1.5px solid #e2e8f0; }
 
-.btn { width: 100%; padding: 16px; border-radius: 18px; border: none; font-weight: 800; font-size: 14px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
-.btn-secondary { background: #f1f5f9; color: var(--dark); border: 1px solid #e2e8f0; }
+.dashboard { background: linear-gradient(135deg, #f8fafc, #eff6ff); border-radius: 25px; padding: 20px; margin-top: 20px; border: 1px solid #e2e8f0; text-align: center; }
+.rev-val { font-size: 34px; font-weight: 1000; color: var(--dark); letter-spacing: -1.5px; }
 
-.dashboard { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 15px; margin-top: 15px; }
-.rev-val { font-size: 26px; font-weight: 900; color: var(--dark); }
+#resultBox { margin-top: 20px; padding: 20px; border: 2.5px dashed var(--primary); border-radius: 25px; display: none; background: #fff; }
+.info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; font-weight: 800; color: #64748b; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+.info-row span { color: var(--dark); font-weight: 900; text-align: right; }
 
-/* RESULT PANEL */
-#detailsPanel { margin-top: 15px; background: #fff; border: 2px dashed var(--primary); border-radius: 20px; padding: 15px; display: none; }
-.row { display: flex; justify-content: space-between; font-size: 12px; margin: 5px 0; font-weight: 700; color: #64748b; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
-.row span { color: var(--dark); font-weight: 900; text-align: right; }
-
-#pop { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; place-items: center; z-index: 1000; backdrop-filter: blur(10px); }
-.pop-card { background: #fff; padding: 35px; border-radius: 35px; width: 80%; text-align: center; }
+#overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; place-items: center; z-index: 100; backdrop-filter: blur(20px); }
+.modal { background: #fff; padding: 40px; border-radius: 40px; width: 85%; text-align: center; color: #000; }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="top-nav">
-    <div class="lang-box">
-      AI VOICE: <select id="vLang"><option value="hi-IN">HINDI</option><option value="en-US">ENGLISH</option></select>
+  <div class="top-bar">
+    <div class="lang-chip">
+      🌐 <select id="vMode"><option value="hi-IN">HINDI (हिंदी)</option><option value="en-US">ENGLISH</option></select>
     </div>
-    <button id="sBtn" style="border:none; background:none; font-size:20px; cursor:pointer;" onclick="tglSnd()">🔊</button>
+    <button onclick="tglAud()" id="vBtn" style="background:none; border:none; font-size:24px; cursor:pointer;">🔊</button>
   </div>
 
-  <h2 style="margin:0; font-size: 26px; font-weight: 900; color:var(--dark);">AuthentiPay <span style="color:var(--primary);">AI</span></h2>
-  <p style="font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Full Scale Smart Scanner</p>
+  <h2 style="margin:15px 0 0; font-weight: 1000; font-size: 28px;">AuthentiPay <span style="color:var(--primary)">AI</span></h2>
+  <p style="font-size: 10px; color: #94a3b8; font-weight: 900; letter-spacing: 2px;">TRAINED AUDITOR PRO</p>
 
-  <div id="initBtns">
-    <button class="btn btn-primary" onclick="initCam()">LIVE CAMERA SCAN</button>
-    <button class="btn btn-secondary" onclick="document.getElementById('fIn').click()">UPLOAD FULL SCREENSHOT</button>
+  <div id="startUI">
+    <button class="btn btn-main" onclick="openCam()">START LIVE SCANNER</button>
+    <button class="btn btn-alt" onclick="document.getElementById('pick').click()">UPLOAD FROM GALLERY</button>
   </div>
-  <input type="file" id="fIn" hidden accept="image/*">
+  <input type="file" id="pick" hidden accept="image/*">
 
   <div class="scanner-container" id="sBox">
     <div class="scan-line" id="sLine"></div>
     <video id="v" autoplay playsinline></video>
-    <img id="p" style="display:none">
+    <img id="prev" style="display:none">
   </div>
-  <button id="capBtn" class="btn btn-primary" style="display:none">VALIDATE & EXTRACT</button>
+  <button id="snap" class="btn btn-main" style="display:none">EXTRACT DATA</button>
 
   <div class="dashboard">
-    <div style="font-size: 10px; color: #94a3b8; font-weight: 800; letter-spacing: 1px;">TOTAL BUSINESS REVENUE</div>
-    <div id="rev" class="rev-val">₹0.00</div>
+    <div style="font-size: 11px; color: #64748b; font-weight: 900;">VERIFIED BUSINESS TOTAL</div>
+    <div class="rev-val" id="revDisp">₹0.00</div>
   </div>
 
-  <div id="detailsPanel">
-    <div class="row">Customer/Party: <span id="rName">-</span></div>
-    <div class="row">Amount Detected: <span id="rAmt">-</span></div>
-    <div class="row">Transaction ID: <span id="rID">-</span></div>
-  </div>
-</div>
-
-<div id="pop">
-  <div class="pop-card">
-    <div id="pIcon" style="font-size:60px;"></div>
-    <h2 id="pTitle" style="font-weight:900; margin:15px 0; color:var(--dark);"></h2>
-    <button class="btn btn-primary" onclick="location.reload()">NEXT SCAN</button>
+  <div id="resultBox">
+    <div class="info-row">Party/Name <span id="resName">-</span></div>
+    <div class="info-row">Amount Detected <span id="resAmt">-</span></div>
+    <div class="info-row">Transaction ID <span id="resID">-</span></div>
   </div>
 </div>
 
-<canvas id="c" hidden></canvas>
+<div id="overlay">
+  <div class="modal">
+    <div id="mIco" style="font-size: 70px; margin-bottom: 20px;"></div>
+    <h2 id="mTit" style="margin: 0; font-weight: 1000;"></h2>
+    <p id="mTxt" style="color: #64748b; margin: 15px 0 30px; font-weight: 600;"></p>
+    <button class="btn btn-main" onclick="location.reload()">NEXT SCAN</button>
+  </div>
+</div>
+
+<canvas id="canvas" hidden></canvas>
 
 <script>
-let state = JSON.parse(localStorage.getItem('ap_ultra_v5')) || { rev: 0 };
-let snd = true;
-let strm = null;
+let store = JSON.parse(localStorage.getItem('ap_final_v11')) || { total: 0 };
+let aud = true;
+let stream = null;
 
-const tglSnd = () => { snd = !snd; sBtn.innerText = snd ? "🔊" : "🔈"; };
-const speak = (m) => { 
-  if(snd) { 
-    window.speechSynthesis.cancel(); 
-    const u = new SpeechSynthesisUtterance(m); 
-    u.lang = vLang.value; 
-    u.rate = 0.9; 
-    window.speechSynthesis.speak(u); 
-  } 
-};
+const tglAud = () => { aud = !aud; vBtn.innerText = aud ? "🔊" : "🔈"; };
+const talk = (t) => { if(aud) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = vMode.value; window.speechSynthesis.speak(u); } };
 
-rev.innerText = `₹${state.rev.toLocaleString('en-IN')}`;
+revDisp.innerText = `₹${store.total.toLocaleString('en-IN')}`;
 
-async function initCam() {
+async function openCam() {
   try {
-    strm = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 } } });
-    v.srcObject = strm;
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 } } });
+    v.srcObject = stream;
     sBox.style.display = "block";
-    initBtns.style.display = "none";
-    capBtn.style.display = "block";
-    sLine.style.display = "block";
-  } catch(e) { alert("Camera Error"); }
+    startUI.style.display = "none";
+    snap.style.display = "block";
+  } catch(e) { alert("Camera not accessible"); }
 }
 
-capBtn.onclick = () => {
-  const ctx = c.getContext('2d');
-  c.width = v.videoWidth; 
-  c.height = v.videoHeight;
-  // SMART CROP + FILTERS
-  ctx.filter = "contrast(1.5) grayscale(1)";
-  ctx.drawImage(v, 0, 0, c.width, c.height);
-  
-  const img = c.toDataURL('image/jpeg', 0.9);
-  v.style.display = "none"; p.src = img; p.style.display = "block";
-  capBtn.style.display = "none";
-  if(strm) strm.getTracks().forEach(t => t.stop());
-  doOCR(img);
+snap.onclick = () => {
+  const ctx = canvas.getContext('2d');
+  canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+  // WORLD CLASS PRE-PROCESSING
+  ctx.filter = "contrast(2.2) grayscale(1) brightness(1.1) saturate(0)";
+  ctx.drawImage(v, 0, 0);
+  const data = canvas.toDataURL('image/jpeg', 1.0);
+  v.style.display = "none"; prev.src = data; prev.style.display = "block";
+  snap.style.display = "none";
+  if(stream) stream.getTracks().forEach(t => t.stop());
+  execute(data);
 };
 
-fIn.onchange = (e) => {
+pick.onchange = (e) => {
   const r = new FileReader();
-  r.onload = (ex) => { 
-    sBox.style.display="block"; v.style.display="none"; 
-    p.src=ex.target.result; p.style.display="block"; 
-    initBtns.style.display="none"; sLine.style.display="block";
-    doOCR(ex.target.result); 
+  r.onload = (f) => {
+    sBox.style.display = "block"; v.style.display = "none";
+    prev.src = f.target.result; prev.style.display = "block";
+    startUI.style.display = "none"; sLine.style.display = "block";
+    execute(f.target.result);
   };
   r.readAsDataURL(e.target.files[0]);
 };
 
-async function doOCR(src) {
-  const wrk = await Tesseract.createWorker();
-  await wrk.loadLanguage('eng');
-  await wrk.initialize('eng');
-  const { data: { text } } = await wrk.recognize(src);
-  await wrk.terminate();
-  parse(text);
+async function execute(img) {
+  const worker = await Tesseract.createWorker();
+  await worker.loadLanguage('eng');
+  await worker.initialize('eng');
+  // High confidence mode
+  await worker.setParameters({ tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz₹,.@' });
+  const { data: { text } } = await worker.recognize(img);
+  await worker.terminate();
+  verify(text);
 }
 
-function parse(txt) {
-  const l = txt.toLowerCase();
-  const lang = vLang.value;
+function verify(raw) {
+  const txt = raw.toLowerCase();
+  const lang = vMode.value;
 
+  // 1. AMOUNT LOGIC (Handles multiple formats)
   let amt = 0;
-  const matches = txt.match(/[\d,]+\.\d{2}/g);
-  if(matches) amt = parseFloat(matches.sort((a,b) => b.length - a.length)[0].replace(/,/g,''));
+  const match = raw.match(/[\d,]+\.\d{2}/) || raw.match(/₹\s?[\d,]+/);
+  if(match) amt = parseFloat(match[0].replace(/[₹,\s]/g, ''));
 
-  let name = (txt.match(/(?:To|From|Paid|Name|Received)\s*:?\s*([A-Z\s]{3,20})/i) || [null, "Verified Merchant"])[1].trim();
-  let id = (txt.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || txt.match(/\d{12}/) || ["Not Found"])[0];
+  // 2. NAME & ID LOGIC
+  const party = (raw.match(/(?:To|From|Paid|Name|Received|For|Beneficiary)\s*:?\s*([A-Z\s]{3,25})/i) || [null, "Verified Merchant"])[1].trim();
+  const upi = (raw.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/) || raw.match(/\d{12}/) || ["Not Found"])[0];
 
-  const isOk = (l.includes('success') || l.includes('paid') || l.includes('received') || l.includes('completed')) && amt > 0;
+  // 3. TRAINED CONFIRMATION (Checks for multiple success signals)
+  const isOk = (txt.includes('success') || txt.includes('paid') || txt.includes('received') || txt.includes('sent') || txt.includes('completed')) && amt > 0;
 
-  detailsPanel.style.display = "block";
-  rName.innerText = name; rAmt.innerText = "₹" + amt; rID.innerText = id;
+  resultBox.style.display = "block";
+  resName.innerText = party; resAmt.innerText = "₹" + amt.toFixed(2); resID.innerText = upi;
 
   if(isOk) {
-    state.rev += amt;
-    localStorage.setItem('ap_ultra_v5', JSON.stringify(state));
-    rev.innerText = `₹${state.rev.toLocaleString('en-IN')}`;
-    speak(lang === "hi-IN" ? `${name} se ${amt} rupaye prapt hue` : `Received ${amt} rupees from ${name}`);
+    store.total += amt;
+    localStorage.setItem('ap_final_v11', JSON.stringify(store));
+    revDisp.innerText = `₹${store.total.toLocaleString('en-IN')}`;
+    
+    let msg = lang === "hi-IN" ? `${party} se ${amt} rupaye prapt hue.` : `Received ${amt} rupees from ${party}.`;
+    talk(msg);
   } else {
-    speak(lang === "hi-IN" ? "Payment verify nahi hua" : "Verification Failed");
+    talk(lang === "hi-IN" ? "Payment verify nahi ho saka." : "Payment verification failed.");
   }
 
-  pop.style.display = "grid";
-  pIcon.innerText = isOk ? "✅" : "🛡️";
-  pTitle.innerText = isOk ? "Success" : "Alert";
+  overlay.style.display = "grid";
+  mIco.innerText = isOk ? "✅" : "❌";
+  mTit.innerText = isOk ? "VERIFIED" : "UNVERIFIED";
+  mTxt.innerText = isOk ? `Authentic receipt detected. ₹${amt} added.` : "Receipt pattern not recognized. Try again.";
 }
 </script>
 </body>

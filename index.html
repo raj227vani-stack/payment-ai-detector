@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Image Scanner</title>
+<title>AI Scanner</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
@@ -11,15 +11,15 @@
 <style>
 body {
     margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #0f172a, #2563eb);
+    font-family: Arial;
+    background: linear-gradient(135deg,#1e3a8a,#2563eb);
     color: white;
 }
 
 header {
     text-align: center;
-    padding: 20px;
-    font-size: 26px;
+    padding: 15px;
+    font-size: 24px;
     font-weight: bold;
 }
 
@@ -30,7 +30,7 @@ header {
 
 .left, .right {
     width: 50%;
-    padding: 40px;
+    padding: 20px;
 }
 
 .left {
@@ -40,94 +40,61 @@ header {
     justify-content: center;
 }
 
-.upload-box {
-    border: 2px dashed white;
-    padding: 50px;
-    border-radius: 20px;
-    cursor: pointer;
-    text-align: center;
-    transition: 0.3s;
-}
-
-.upload-box:hover {
-    background: rgba(255,255,255,0.1);
-}
-
-input {
-    display: none;
-}
-
 button {
-    margin-top: 25px;
-    padding: 14px 30px;
-    background: white;
-    color: #1e3a8a;
+    margin: 10px;
+    padding: 12px 20px;
     border: none;
-    border-radius: 10px;
-    font-size: 16px;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: bold;
 }
 
-button:hover {
-    background: #dbeafe;
-}
+.upload-btn { background: white; color: #1e3a8a; }
+.camera-btn { background: #22c55e; color: white; }
+.scan-btn { background: #f59e0b; color: white; }
 
-img {
-    max-width: 320px;
-    margin-top: 20px;
-    border-radius: 12px;
+img, video {
+    max-width: 300px;
+    margin-top: 15px;
+    border-radius: 10px;
 }
 
 .right {
     background: white;
     color: black;
-    border-radius: 30px 0 0 30px;
 }
 
-.result-box {
+.result {
     margin-top: 20px;
-    padding: 25px;
+    padding: 15px;
     background: #f1f5f9;
-    border-radius: 12px;
-}
-
-.loader {
-    border: 5px solid #eee;
-    border-top: 5px solid #2563eb;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin-top: 20px;
-}
-
-@keyframes spin {
-    100% { transform: rotate(360deg); }
+    border-radius: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<header>🚀 AI Image Scanner</header>
+<header>🚀 AI Scanner</header>
 
 <div class="container">
 
 <div class="left">
-    <label class="upload-box">
-        📂 Click to Upload Image
-        <input type="file" id="fileInput" accept="image/*">
-    </label>
 
-    <img id="preview" />
+<input type="file" id="fileInput" accept="image/*">
+<button class="upload-btn" onclick="document.getElementById('fileInput').click()">Upload Image</button>
 
-    <button onclick="predict()">Scan Image</button>
+<button class="camera-btn" onclick="startCamera()">Open Camera</button>
+
+<video id="video" autoplay playsinline style="display:none;"></video>
+<img id="preview" style="display:none;">
+
+<button class="scan-btn" onclick="predict()">Scan</button>
+
 </div>
 
 <div class="right">
-    <h2>Scan Results</h2>
-    <div id="result" class="result-box">No result yet...</div>
+<h2>Result</h2>
+<div id="result" class="result">No result yet</div>
 </div>
 
 </div>
@@ -136,41 +103,91 @@ img {
 const URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/";
 
 let model;
+let currentImage = null;
 
+// LOAD MODEL
 async function loadModel() {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
-    model = await tmImage.load(modelURL, metadataURL);
+    try {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        console.log("Model loaded");
+    } catch (e) {
+        alert("Model load error");
+        console.error(e);
+    }
 }
-loadModel(); // load model automatically
+loadModel();
 
+// IMAGE UPLOAD
 const fileInput = document.getElementById("fileInput");
 const preview = document.getElementById("preview");
+const video = document.getElementById("video");
 
 fileInput.addEventListener("change", function() {
     const file = fileInput.files[0];
-    if (file) {
-        preview.src = URL.createObjectURL(file);
-    }
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+
+    preview.src = url;
+    preview.style.display = "block";
+
+    video.style.display = "none";
+
+    currentImage = preview;
 });
 
+// CAMERA START
+async function startCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+        video.srcObject = stream;
+        video.style.display = "block";
+        preview.style.display = "none";
+
+        currentImage = video;
+    } catch (err) {
+        alert("Camera not working (Use HTTPS or allow permission)");
+        console.error(err);
+    }
+}
+
+// PREDICT FUNCTION
 async function predict() {
+    const resultBox = document.getElementById("result");
+
     if (!model) {
-        alert("Model loading, please wait...");
+        resultBox.innerHTML = "Model still loading...";
         return;
     }
 
-    const resultBox = document.getElementById("result");
-    resultBox.innerHTML = "<div class='loader'></div><p>Scanning...</p>";
+    if (!currentImage) {
+        resultBox.innerHTML = "Please upload or capture image first";
+        return;
+    }
 
-    const prediction = await model.predict(preview);
+    resultBox.innerHTML = "Scanning...";
 
-    let best = prediction.reduce((a, b) => a.probability > b.probability ? a : b);
+    try {
+        const prediction = await model.predict(currentImage);
 
-    resultBox.innerHTML = `
-        <h3>Prediction: ${best.className}</h3>
-        <p>Confidence: ${(best.probability * 100).toFixed(2)}%</p>
-    `;
+        let best = prediction[0];
+        for (let i = 1; i < prediction.length; i++) {
+            if (prediction[i].probability > best.probability) {
+                best = prediction[i];
+            }
+        }
+
+        resultBox.innerHTML = `
+            <h3>${best.className}</h3>
+            <p>${(best.probability * 100).toFixed(2)}% confidence</p>
+        `;
+    } catch (e) {
+        resultBox.innerHTML = "Error during prediction";
+        console.error(e);
+    }
 }
 </script>
 

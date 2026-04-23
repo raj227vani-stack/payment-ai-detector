@@ -25,7 +25,6 @@ body{
   box-shadow:0 20px 40px rgba(0,0,0,0.2);
   text-align:center;
 }
-/* Top Right Toggle */
 #soundToggle {
   position: absolute;
   top: 20px;
@@ -41,6 +40,7 @@ body{
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   font-size: 20px;
   border: none;
+  z-index: 10;
 }
 img{width:100%;border-radius:12px;margin-top:10px;}
 .result{margin-top:10px;padding:12px;border-radius:10px;font-weight:bold;}
@@ -50,26 +50,22 @@ img{width:100%;border-radius:12px;margin-top:10px;}
 button,input{margin-top:10px;padding:8px;}
 hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
 </style>
-
 </head>
 
 <body>
 
-<button id="soundToggle" title="Toggle Sound">🔊</button>
+<button id="soundToggle">🔊</button>
 
 <div class="container">
 <h2>AuthentiPay AI</h2>
 
 <input type="file" id="upload" accept="image/*">
-
 <button id="resetBtn" style="display:none;">Upload New</button>
-
 <img id="preview" style="display:none;">
 
 <div id="status" class="info" style="text-align:center;">Upload a receipt</div>
 <div id="result" class="result">Waiting...</div>
 <div id="details" class="info"></div>
-
 </div>
 
 <script>
@@ -82,23 +78,20 @@ let soundToggle = document.getElementById("soundToggle");
 
 let isSoundOn = true;
 
-// Toggle Sound logic
 soundToggle.onclick = () => {
   isSoundOn = !isSoundOn;
   soundToggle.innerText = isSoundOn ? "🔊" : "🔈";
-  soundToggle.style.opacity = isSoundOn ? "1" : "0.6";
 };
 
-// Speech Function
-function speakResult(textToSpeak) {
+function speakResult(text) {
   if (isSoundOn && 'speechSynthesis' in window) {
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 0.9; // Thoda slow taaki samajh aaye
+    window.speechSynthesis.cancel(); 
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.85;
     window.speechSynthesis.speak(utterance);
   }
 }
 
-// upload
 document.getElementById("upload").addEventListener("change",e=>{
   const file=e.target.files[0];
   if(!file) return;
@@ -107,9 +100,8 @@ document.getElementById("upload").addEventListener("change",e=>{
   preview.onload=()=>{ process(preview); };
 });
 
-// reset
 resetBtn.onclick=()=>{
-  window.speechSynthesis.cancel(); // Stop speaking if any
+  window.speechSynthesis.cancel();
   preview.style.display="none";
   resultDiv.innerHTML="Waiting...";
   resultDiv.className="result";
@@ -117,59 +109,65 @@ resetBtn.onclick=()=>{
   statusText.innerText="Upload a receipt";
   resetBtn.style.display="none";
   document.getElementById("upload").value = "";
+  document.getElementById("upload").style.display = "inline-block";
 };
 
-// OCR
 async function process(img){
   statusText.innerText="Scanning receipt...";
   const { data:{ text } } = await Tesseract.recognize(img,'eng');
   analyze(text);
 }
 
-// analysis
 function analyze(text){
-  let t=text.toLowerCase();
-  let score=0;
+  let t = text.toLowerCase();
+  let score = 0;
 
+  // Analysis Scoring
   if(/\w+@\w+/.test(t)) score+=2;
-  if(/(₹|rs\.?|inr|amt|amount)/i.test(t)) score+=2;
+  if(/(₹|rs\.?|inr|amt|amount|total)/i.test(t)) score+=2;
   if(/\d{12}/.test(t)) score+=2;
   if(t.includes("success")||t.includes("paid")||t.includes("completed")) score+=2;
   if(t.includes("phonepe")||t.includes("gpay")||t.includes("paytm")) score+=1;
 
-  let prob=score/9;
-  let confidence=Math.min(Math.round(prob*100), 100);
-  let isReal=prob>0.5;
+  let confidence = Math.min(Math.round((score/9)*100), 100);
+  let isReal = score > 4;
 
-  // Extraction
-  let amountMatch = text.match(/(?:₹|Rs\.?|INR|Amount|Amt)\s*([\d,]+\.?\d*)/i);
+  // 1. IMPROVED AMOUNT EXTRACTION
+  // Try finding amount with symbols first, then just look for large numbers typically found in payment apps
+  let amountMatch = text.match(/(?:₹|Rs\.?|INR|Amount|Amt)\s*([\d,]+\.?\d*)/i) || text.match(/(?:\n|^)\s*([\d,]{1,8}\.\d{2})/m);
+  let amountValue = amountMatch ? amountMatch[1] : "Not detected";
+
+  // 2. UPI ID
   let upiMatch = text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/);
-  let nameMatch = text.match(/(?:Paid to|To|Transfer to|Beneficiary)\s*:?\s*([A-Z\s]{3,25})/i);
-
-  let amount = amountMatch ? amountMatch[1] : "Not detected";
   let upi = upiMatch ? upiMatch[0] : "Not detected";
-  let name = nameMatch ? nameMatch[1].trim() : "Not detected";
-  let risk = prob > 0.7 ? "LOW" : prob > 0.5 ? "MEDIUM" : "HIGH";
 
-  // UI Update
+  // 3. RECIPIENT NAME
+  let nameMatch = text.match(/(?:Paid to|To|Transfer to|Beneficiary|Receiver)\s*:?\s*([A-Z\s]{3,25})/i);
+  let name = nameMatch ? nameMatch[1].trim() : "Not detected";
+
   resultDiv.className = "result " + (isReal ? "real" : "fake");
   resultDiv.innerHTML = `${isReal ? "🟢 VERIFIED" : "🔴 SUSPICIOUS"}<br>Trust Score: ${confidence}%`;
 
   details.innerHTML = `
     <hr>
     <strong>To:</strong> ${name}<br>
-    <strong>Amount:</strong> ₹${amount}<br>
+    <strong>Amount:</strong> ₹${amountValue}<br>
     <strong>UPI ID:</strong> ${upi}<br>
-    <strong>Risk Level:</strong> <span style="color:${risk==='LOW'?'green':risk==='MEDIUM'?'orange':'red'}">${risk}</span>
+    <strong>Risk:</strong> ${isReal ? "Low" : "High"}
   `;
 
   // Voice Output
-  let voiceText = isReal ? "Receipt Verified." : "Warning, suspicious receipt.";
-  voiceText += ` Recipient is ${name}. Amount is ${amount}.`;
-  speakResult(voiceText);
+  let voiceMessage = "";
+  if(isReal) {
+    voiceMessage = `Verified. Paid to ${name}. Amount is ${amountValue} rupees.`;
+  } else {
+    voiceMessage = `Suspicious receipt. Detected recipient is ${name}. Amount is ${amountValue} rupees.`;
+  }
+  speakResult(voiceMessage);
 
   statusText.innerText = "Done";
   resetBtn.style.display = "inline-block";
+  document.getElementById("upload").style.display = "none";
 }
 </script>
 

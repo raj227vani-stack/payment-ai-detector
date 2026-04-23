@@ -5,21 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AuthentiPay AI</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
-body{margin:0;font-family:system-ui;background:linear-gradient(135deg,#0f172a,#e2e8f0);display:flex;justify-content:center;align-items:center;height:100vh}
-.container{width:420px;background:#fff;border-radius:18px;padding:18px;box-shadow:0 20px 40px rgba(0,0,0,.2);text-align:center}
-h2{margin:0}
-video,img{width:100%;border-radius:12px;margin-top:10px}
-.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
-button,input{padding:8px 10px;border-radius:8px;border:1px solid #ddd}
-.result{margin-top:10px;padding:12px;border-radius:10px;font-weight:bold}
-.real{background:#dcfce7;color:#166534}
-.fake{background:#fee2e2;color:#991b1b}
-.muted{font-size:12px;color:#64748b}
+body{
+  margin:0;
+  font-family:system-ui;
+  background:linear-gradient(135deg,#0f172a,#e2e8f0);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.container{
+  width:420px;
+  background:white;
+  border-radius:20px;
+  padding:20px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.2);
+  text-align:center;
+}
+h2{margin:0;}
+img{width:100%;border-radius:12px;margin-top:10px;}
+.result{margin-top:10px;padding:12px;border-radius:10px;font-weight:bold;}
+.real{background:#dcfce7;color:#166534;}
+.fake{background:#fee2e2;color:#991b1b;}
+.info{font-size:13px;color:#64748b;margin-top:5px;}
+button,input{margin-top:10px;padding:8px;}
 </style>
 </head>
 
@@ -28,128 +40,110 @@ button,input{padding:8px 10px;border-radius:8px;border:1px solid #ddd}
 <div class="container">
 <h2>AuthentiPay AI</h2>
 
-<video id="video" autoplay playsinline></video>
+<input type="file" id="upload" accept="image/*">
 
-<div class="row">
-  <button id="captureBtn">Capture & Scan</button>
-  <input type="file" id="upload" accept="image/*">
-</div>
+<label>
+<input type="checkbox" id="soundToggle" checked> Sound ON
+</label>
 
-<div class="row">
-  <label><input type="checkbox" id="soundToggle" checked> Sound</label>
-</div>
+<img id="preview" style="display:none;">
 
-<div id="result" class="result">Ready</div>
-<div id="details" class="muted"></div>
+<div id="status" class="info">Upload a receipt</div>
+<div id="result" class="result">Waiting...</div>
+<div id="details" class="info"></div>
 
 </div>
-
-<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-const URL = "https://teachablemachine.withgoogle.com/models/i583iDC7K/"; // tera model
 
-let model, video=document.getElementById("video");
-let canvas=document.getElementById("canvas");
+let preview=document.getElementById("preview");
 let resultDiv=document.getElementById("result");
+let statusText=document.getElementById("status");
 let details=document.getElementById("details");
 let soundOn=true;
 
-// INIT
-async function init(){
-  model = await tmImage.load(URL+"model.json", URL+"metadata.json");
-  const stream=await navigator.mediaDevices.getUserMedia({video:true});
-  video.srcObject=stream;
-}
-init();
-
-// SOUND
-document.getElementById("soundToggle").onchange=e=>soundOn=e.target.checked;
-
-// CAPTURE BUTTON (no auto loop)
-document.getElementById("captureBtn").onclick=()=>{
-  if(video.videoWidth===0) return;
-  process(video);
+document.getElementById("soundToggle").onchange=e=>{
+  soundOn=e.target.checked;
 };
 
-// UPLOAD (instant scan)
+// upload
 document.getElementById("upload").addEventListener("change",e=>{
   const file=e.target.files[0];
   if(!file) return;
-  const img=new Image();
-  img.onload=()=>process(img);
-  img.src=URL.createObjectURL(file);
+
+  preview.src=URL.createObjectURL(file);
+  preview.style.display="block";
+
+  preview.onload=()=>{
+    process(preview);
+  };
 });
 
-// PREPROCESS (center crop + grayscale + contrast)
-function drawPreprocessed(source){
-  const ctx=canvas.getContext("2d");
-  const w=source.videoWidth||source.width;
-  const h=source.videoHeight||source.height;
+// main OCR
+async function process(img){
 
-  // center ROI (receipt area)
-  const cw = Math.floor(w*0.6);
-  const ch = Math.floor(h*0.6);
-  const sx = Math.floor((w-cw)/2);
-  const sy = Math.floor((h-ch)/2);
+  statusText.innerText="Scanning...";
 
-  canvas.width=400; canvas.height=300;
-  ctx.drawImage(source, sx, sy, cw, ch, 0, 0, 400, 300);
+  const { data:{ text } } = await Tesseract.recognize(img,'eng');
 
-  // grayscale + contrast
-  const imgData = ctx.getImageData(0,0,400,300);
-  for(let i=0;i<imgData.data.length;i+=4){
-    let r=imgData.data[i], g=imgData.data[i+1], b=imgData.data[i+2];
-    let gray = 0.299*r + 0.587*g + 0.114*b;
-    // contrast boost
-    gray = (gray - 128) * 1.3 + 128;
-    imgData.data[i]=imgData.data[i+1]=imgData.data[i+2]=gray;
-  }
-  ctx.putImageData(imgData,0,0);
+  analyze(text);
 }
 
-// MAIN
-async function process(source){
-  drawPreprocessed(source);
+// analysis
+function analyze(text){
 
-  // AI model
-  let pred = await model.predict(canvas);
-  let aiProb = pred[0].probability; // assume REAL = class 0
+  let t=text.toLowerCase();
 
-  // OCR
-  const { data:{ text } } = await Tesseract.recognize(canvas,'eng');
-  const t = text.toLowerCase();
+  let score=0;
 
-  // STRONG RULES (India-specific)
-  let s=0, notes=[];
-  if(/\w+@\w+/.test(t)){ s+=2 } else notes.push("UPI missing");
-  if(/₹\s?\d+/.test(t)){ s+=2 } else notes.push("Amount missing");
-  if(/\d{12,16}/.test(t)){ s+=2 } else notes.push("UTR/Txn missing");
-  if(/success|paid/.test(t)){ s+=2 } else notes.push("Status unclear");
-  if(/phonepe|gpay|paytm|bhim/.test(t)){ s+=1 }
+  // rules
+  if(/\w+@\w+/.test(t)) score+=2;
+  if(/₹\s?\d+/.test(t)) score+=2;
+  if(/\d{12,16}/.test(t)) score+=2;
+  if(t.includes("success") || t.includes("paid")) score+=2;
+  if(t.includes("phonepe")||t.includes("gpay")||t.includes("paytm")||t.includes("bhim")) score+=1;
 
-  let ocrScore = s/9;
+  let prob=score/9;
+  let confidence=Math.round(prob*100);
 
-  // HYBRID (OCR > AI)
-  let final = (aiProb*0.4) + (ocrScore*0.6);
-  let conf = Math.round(final*100);
-  let isReal = final>0.5;
+  let isReal=prob>0.5;
 
-  // extract details
-  let amt = (t.match(/₹\s?\d+/)||["N/A"])[0];
-  let upi = (t.match(/\w+@\w+/)||["N/A"])[0];
-  let risk = final>0.7?"LOW":final>0.5?"MEDIUM":"HIGH";
+  // extract data
+  let amount=(t.match(/₹\s?\d+/)||["Not found"])[0];
+  let upi=(t.match(/\w+@\w+/)||["Not found"])[0];
+  let risk=prob>0.7?"LOW":prob>0.5?"MEDIUM":"HIGH";
 
   resultDiv.className="result "+(isReal?"real":"fake");
-  resultDiv.innerHTML = `${isReal?"🟢 VERIFIED":"🔴 SUSPICIOUS"} — ${conf}%`;
-  details.innerHTML = `Amount: ${amt} | UPI: ${upi} | Risk: ${risk}`;
 
-  if(soundOn){
-    let msg = isReal?`Payment verified ${conf} percent`:`Suspicious payment ${conf} percent`;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
-  }
+  resultDiv.innerHTML=`
+  ${isReal?"🟢 VERIFIED":"🔴 SUSPICIOUS"}<br>
+  Trust Score: ${confidence}%
+  `;
+
+  details.innerHTML=`
+  Amount: ${amount}<br>
+  UPI: ${upi}<br>
+  Risk Level: ${risk}
+  `;
+
+  statusText.innerText="Done";
+
+  speak(isReal,confidence);
 }
+
+// voice
+function speak(isReal,conf){
+
+  if(!soundOn) return;
+
+  let msg=isReal
+  ? `Payment verified with ${conf} percent confidence`
+  : `Suspicious payment detected`;
+
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
+}
+
 </script>
 
 </body>

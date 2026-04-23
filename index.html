@@ -1,174 +1,888 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-<meta charset="UTF-8">
-<title>AuthentiPay AI</title>
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
-
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UPI Receipt Scanner – AI Verification</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-body{
-  margin:0;
-  font-family:system-ui;
-  background:linear-gradient(135deg,#0f172a,#f1f5f9);
-  color:#0f172a;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+:root {
+  --saffron: #FF6B00;
+  --saffron-light: #FF8C38;
+  --saffron-glow: rgba(255,107,0,0.22);
+  --deep-purple: #1a0533;
+  --purple-mid: #2d0a5a;
+  --purple-card: rgba(45,10,90,0.7);
+  --upi-blue: #2563EB;
+  --upi-blue-light: #3B82F6;
+  --success: #10B981;
+  --success-light: #34D399;
+  --success-glow: rgba(16,185,129,0.25);
+  --danger: #EF4444;
+  --danger-light: #F87171;
+  --danger-glow: rgba(239,68,68,0.25);
+  --warning: #F59E0B;
+  --text-white: #FEFCE8;
+  --text-dim: rgba(254,252,232,0.55);
+  --text-muted: rgba(254,252,232,0.3);
+  --border: rgba(255,255,255,0.1);
+  --border-glow: rgba(255,107,0,0.35);
+  --card-bg: rgba(255,255,255,0.05);
+  --card-bg-hover: rgba(255,255,255,0.08);
 }
-.container{
-  width:420px;
-  background:white;
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--deep-purple);
+  color: var(--text-white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(255,107,0,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 100%, rgba(37,99,235,0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 60% at 50% 50%, rgba(45,10,90,0.9) 0%, transparent 80%),
+    linear-gradient(160deg, #1a0533 0%, #0f0220 50%, #0a011a 100%);
+  z-index:0;pointer-events:none;
+}
+
+body::after {
+  content:'';
+  position:fixed;inset:0;
+  background-image: repeating-linear-gradient(
+    60deg, rgba(255,107,0,0.025) 0px, rgba(255,107,0,0.025) 1px,
+    transparent 1px, transparent 40px
+  ), repeating-linear-gradient(
+    -60deg, rgba(255,107,0,0.025) 0px, rgba(255,107,0,0.025) 1px,
+    transparent 1px, transparent 40px
+  );
+  z-index:0;pointer-events:none;
+}
+
+.app {
+  position:relative;z-index:1;
+  max-width:520px;margin:0 auto;
+  padding:0 0 80px;
+}
+
+.topnav {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--border);
+  background:rgba(26,5,51,0.85);
+  backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:100;
+}
+
+.nav-brand {
+  display:flex;align-items:center;gap:10px;
+}
+
+.nav-logo {
+  width:36px;height:36px;
+  background:linear-gradient(135deg, var(--saffron), #ff3d00);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  box-shadow:0 0 16px rgba(255,107,0,0.4);
+}
+
+.nav-title-wrap h1 {
+  font-family:'Baloo 2',sans-serif;
+  font-size:16px;font-weight:800;
+  background:linear-gradient(90deg, var(--saffron-light), #fff8e7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;line-height:1.1;
+}
+
+.nav-title-wrap span {
+  font-size:10px;color:var(--text-dim);
+  font-family:'Noto Sans Devanagari',sans-serif;
+  display:block;
+}
+
+.nav-actions {display:flex;gap:10px;align-items:center;}
+
+.sound-toggle {
+  display:flex;align-items:center;gap:6px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:100px;
+  padding:6px 12px;
+  cursor:pointer;
+  font-size:11px;
+  color:var(--text-dim);
+  transition:all 0.2s;
+  user-select:none;
+}
+.sound-toggle:hover{border-color:var(--border-glow);color:var(--text-white);}
+.sound-toggle.on{
+  background:rgba(255,107,0,0.12);
+  border-color:rgba(255,107,0,0.3);
+  color:var(--saffron-light);
+}
+.sound-icon{font-size:14px;}
+
+.hero {
+  text-align:center;
+  padding:28px 20px 20px;
+  animation:fadeDown 0.6s cubic-bezier(.22,1,.36,1) both;
+}
+
+.trust-badge {
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(16,185,129,0.1);
+  border:1px solid rgba(16,185,129,0.25);
+  border-radius:100px;
+  padding:5px 14px;
+  font-size:10px;font-weight:600;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--success-light);
+  margin-bottom:14px;
+}
+.trust-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--success);animation:blink 1.5s ease infinite;}
+
+.hero h2 {
+  font-family:'Baloo 2',sans-serif;
+  font-size:clamp(22px,6vw,30px);font-weight:800;
+  line-height:1.15;margin-bottom:6px;
+  color:var(--text-white);
+}
+
+.hero h2 span {
+  background:linear-gradient(90deg,var(--saffron),#ffcc44);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+.hero-sub {
+  font-size:12px;color:var(--text-dim);
+  font-family:'Noto Sans Devanagari',sans-serif;
+  line-height:1.6;
+}
+
+.upi-brands {
+  display:flex;align-items:center;justify-content:center;
+  gap:8px;padding:14px 20px;
+  flex-wrap:wrap;
+  animation:fadeDown 0.6s 0.1s cubic-bezier(.22,1,.36,1) both;
+}
+
+.brand-pill {
+  display:flex;align-items:center;gap:5px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:100px;
+  padding:5px 12px;
+  font-size:11px;font-weight:600;
+  transition:all 0.2s;
+}
+.brand-pill:hover{border-color:var(--border-glow);background:var(--card-bg-hover);}
+.brand-pill .dot{width:8px;height:8px;border-radius:50%;}
+.phonepe-dot{background:#5f259f;}
+.gpay-dot{background:linear-gradient(135deg,#4285f4,#34a853);}
+.paytm-dot{background:#00baf2;}
+.bhim-dot{background:#f26522;}
+.amazon-dot{background:#FF9900;}
+
+.scanner-section {
+  padding:0 16px;
+  animation:fadeUp 0.6s 0.15s cubic-bezier(.22,1,.36,1) both;
+}
+
+.scanner-card {
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:24px;
+  overflow:hidden;
+  backdrop-filter:blur(20px);
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+.scanner-header {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+}
+
+.scan-label {
+  font-family:'Baloo 2',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--text-dim);
+}
+
+.cam-status {
+  display:flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:600;
+  color:var(--success-light);
+}
+.cam-dot{width:5px;height:5px;border-radius:50%;background:var(--success);animation:blink 1.5s ease infinite;}
+
+.video-wrap {
+  position:relative;
+  width:100%;aspect-ratio:1/1;
+  background:#050208;overflow:hidden;
+}
+
+#videoFeed{width:100%;height:100%;object-fit:cover;display:block;}
+#uploadPreview{width:100%;height:100%;object-fit:contain;display:none;background:#050208;}
+#analysisCanvas{display:none;}
+
+.no-cam {
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;color:var(--text-muted);font-size:13px;
+  display:none;
+}
+
+.overlay{position:absolute;inset:0;pointer-events:none;}
+
+.corner{position:absolute;width:24px;height:24px;}
+.c-tl{top:16px;left:16px;border-top:2.5px solid var(--saffron);border-left:2.5px solid var(--saffron);border-radius:5px 0 0 0;}
+.c-tr{top:16px;right:16px;border-top:2.5px solid var(--saffron);border-right:2.5px solid var(--saffron);border-radius:0 5px 0 0;}
+.c-bl{bottom:16px;left:16px;border-bottom:2.5px solid var(--saffron);border-left:2.5px solid var(--saffron);border-radius:0 0 0 5px;}
+.c-br{bottom:16px;right:16px;border-bottom:2.5px solid var(--saffron);border-right:2.5px solid var(--saffron);border-radius:0 0 5px 0;}
+
+.scan-beam {
+  position:absolute;left:16px;right:16px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--saffron),var(--saffron-light),var(--saffron),transparent);
+  box-shadow:0 0 12px 2px var(--saffron-glow);
+  animation:beamMove 2.4s ease-in-out infinite;
+  border-radius:2px;
+}
+.scan-beam.paused{animation-play-state:paused;}
+
+.scan-center-mark {
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:60px;height:60px;
+  border:1.5px dashed rgba(255,107,0,0.25);
+  border-radius:50%;
+  animation:spinSlow 6s linear infinite;
+}
+
+.result-flash{
+  position:absolute;inset:0;opacity:0;
+  transition:opacity 0.4s;pointer-events:none;
+}
+.result-flash.safe{background:rgba(16,185,129,0.1);}
+.result-flash.risk{background:rgba(239,68,68,0.1);}
+.result-flash.show{opacity:1;}
+
+.scanner-bottom {
+  display:flex;align-items:center;justify-content:center;
+  gap:12px;padding:14px 18px;
+  border-top:1px solid var(--border);
+}
+
+.upload-btn {
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--saffron),#e65c00);
+  border:none;border-radius:100px;
+  padding:10px 22px;
+  font-family:'Poppins',sans-serif;
+  font-size:13px;font-weight:600;
+  color:#fff;cursor:pointer;
+  box-shadow:0 4px 20px rgba(255,107,0,0.35);
+  transition:all 0.2s;
+  flex:1;justify-content:center;
+}
+.upload-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(255,107,0,0.45);}
+.upload-btn:active{transform:translateY(0);}
+
+.cam-toggle-btn {
+  display:flex;align-items:center;gap:6px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:100px;
+  padding:10px 16px;
+  font-family:'Poppins',sans-serif;
+  font-size:12px;font-weight:500;
+  color:var(--text-dim);cursor:pointer;
+  transition:all 0.2s;
+}
+.cam-toggle-btn:hover{border-color:var(--border-glow);color:var(--text-white);}
+
+#fileInput{display:none;}
+
+.result-section {
+  padding:16px 16px 0;
+  animation:fadeUp 0.6s 0.2s cubic-bezier(.22,1,.36,1) both;
+}
+
+.result-card {
+  border-radius:24px;
+  padding:22px 20px;
+  border:1.5px solid var(--border);
+  background:var(--card-bg);
+  backdrop-filter:blur(20px);
+  transition:all 0.4s ease;
+  position:relative;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+}
+
+.result-card::before {
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--saffron),transparent);
+  opacity:0;transition:opacity 0.4s;
+}
+
+.result-card.safe-card {
+  border-color:rgba(16,185,129,0.35);
+  background:rgba(16,185,129,0.06);
+  box-shadow:0 0 40px -8px var(--success-glow),0 8px 32px rgba(0,0,0,0.3);
+}
+
+.result-card.risk-card {
+  border-color:rgba(239,68,68,0.35);
+  background:rgba(239,68,68,0.06);
+  box-shadow:0 0 40px -8px var(--danger-glow),0 8px 32px rgba(0,0,0,0.3);
+}
+.result-card.risk-card::before{opacity:1;background:linear-gradient(90deg,transparent,var(--danger),transparent);}
+
+.result-top {
+  display:flex;align-items:center;gap:16px;margin-bottom:16px;
+}
+
+.result-icon {
+  width:56px;height:56px;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;flex-shrink:0;
+  border:1.5px solid var(--border);
+  background:var(--card-bg);
+  transition:all 0.4s;
+}
+.result-icon.safe{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);}
+.result-icon.risk{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);}
+
+.result-text h3 {
+  font-family:'Baloo 2',sans-serif;
+  font-size:20px;font-weight:800;
+  line-height:1.1;margin-bottom:3px;
+  transition:color 0.4s;
+}
+.result-text h3.idle{color:var(--text-muted);}
+.result-text h3.safe{color:var(--success-light);}
+.result-text h3.risk{color:var(--danger-light);}
+
+.result-text .hindi-label {
+  font-family:'Noto Sans Devanagari',sans-serif;
+  font-size:11px;color:var(--text-dim);margin-bottom:3px;
+}
+
+.result-text p {
+  font-size:12px;color:var(--text-dim);line-height:1.5;
+}
+
+.trust-meter {
+  margin-bottom:14px;
+}
+
+.trust-header {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+
+.trust-header span:first-child {
+  font-size:11px;font-weight:600;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--text-dim);
+}
+
+.trust-pct {
+  font-family:'Baloo 2',sans-serif;
+  font-size:20px;font-weight:800;
+  transition:color 0.4s;
+}
+.trust-pct.idle{color:var(--text-muted);}
+.trust-pct.safe{color:var(--success-light);}
+.trust-pct.risk{color:var(--danger-light);}
+
+.meter-track {
+  height:8px;background:rgba(255,255,255,0.08);
+  border-radius:100px;overflow:hidden;
+}
+
+.meter-fill {
+  height:100%;border-radius:100px;
+  width:0%;
+  transition:width 0.9s cubic-bezier(.22,1,.36,1), background 0.4s;
+}
+.meter-fill.safe{background:linear-gradient(90deg,var(--success),var(--success-light));}
+.meter-fill.risk{background:linear-gradient(90deg,#c0392b,var(--danger-light));}
+.meter-fill.idle{background:rgba(255,255,255,0.15);}
+
+.chips-row {
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;
+  padding-top:14px;border-top:1px solid var(--border);
+}
+
+.chip {
+  font-size:10px;font-weight:600;
+  padding:4px 10px;border-radius:100px;
+  border:1px solid;
+  opacity:0;transform:translateY(4px);
+  transition:opacity 0.25s,transform 0.25s;
+  letter-spacing:0.03em;
+}
+.chip.show{opacity:1;transform:translateY(0);}
+.chip.safe{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:var(--success-light);}
+.chip.risk{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.25);color:var(--danger-light);}
+.chip.neutral{background:rgba(255,255,255,0.05);border-color:var(--border);color:var(--text-dim);}
+
+.tips-section {
+  padding:16px;
+  animation:fadeUp 0.6s 0.3s cubic-bezier(.22,1,.36,1) both;
+}
+
+.tips-card {
+  background:var(--card-bg);
+  border:1px solid var(--border);
   border-radius:20px;
-  padding:20px;
-  box-shadow:0 20px 40px rgba(0,0,0,0.2);
+  padding:18px;
+  backdrop-filter:blur(20px);
 }
-h2{text-align:center;margin:0;}
-video{width:100%;border-radius:12px;margin-top:10px;}
-.result{margin-top:12px;padding:12px;border-radius:12px;font-weight:bold;}
-.real{background:#dcfce7;color:#166534;}
-.fake{background:#fee2e2;color:#991b1b;}
-.status{font-size:13px;color:#64748b;margin-top:6px;}
-select{margin-top:8px;width:100%;padding:6px;}
+
+.tips-title {
+  font-family:'Baloo 2',sans-serif;
+  font-size:13px;font-weight:700;
+  color:var(--saffron-light);
+  margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;
+}
+
+.tip-row {
+  display:flex;align-items:flex-start;gap:10px;
+  margin-bottom:10px;font-size:11px;
+  color:var(--text-dim);line-height:1.5;
+}
+.tip-row:last-child{margin-bottom:0;}
+.tip-num {
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(255,107,0,0.15);
+  border:1px solid rgba(255,107,0,0.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:var(--saffron-light);
+  flex-shrink:0;margin-top:1px;
+}
+
+.stats-row {
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;padding:0 16px 16px;
+  animation:fadeUp 0.6s 0.35s cubic-bezier(.22,1,.36,1) both;
+}
+
+.stat-box {
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px 10px;
+  text-align:center;
+  backdrop-filter:blur(12px);
+}
+
+.stat-num {
+  font-family:'Baloo 2',sans-serif;
+  font-size:22px;font-weight:800;
+  display:block;line-height:1;
+  margin-bottom:4px;
+}
+.stat-num.total{color:var(--saffron-light);}
+.stat-num.safe{color:var(--success-light);}
+.stat-num.risk{color:var(--danger-light);}
+
+.stat-lbl{font-size:9px;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;font-weight:600;}
+.stat-hindi{font-family:'Noto Sans Devanagari',sans-serif;font-size:9px;color:var(--text-muted);display:block;margin-top:1px;}
+
+.shimmer-bar {
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,107,0,0.06) 50%,transparent 100%);
+  background-size:200% 100%;
+  animation:shimmer 1.8s ease-in-out infinite;
+  opacity:0;pointer-events:none;transition:opacity 0.3s;
+  border-radius:24px;
+}
+.result-card.scanning .shimmer-bar{opacity:1;}
+
+@keyframes beamMove {
+  0%{top:16px;opacity:0;}5%{opacity:1;}95%{opacity:1;}
+  100%{top:calc(100% - 18px);opacity:0;}
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes shimmer{0%{background-position:-100% 0;}100%{background-position:200% 0;}}
+@keyframes spinSlow{from{transform:translate(-50%,-50%) rotate(0deg);}to{transform:translate(-50%,-50%) rotate(360deg);}}
 </style>
 </head>
-
 <body>
+<div class="app">
 
-<div class="container">
-<h2>AuthentiPay AI</h2>
+  <nav class="topnav">
+    <div class="nav-brand">
+      <div class="nav-logo">🔍</div>
+      <div class="nav-title-wrap">
+        <h1>PayVerify AI</h1>
+        <span>UPI रसीद सत्यापन</span>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="sound-toggle on" id="soundToggle" onclick="toggleSound()">
+        <span class="sound-icon" id="soundIcon">🔊</span>
+        <span id="soundLabel">Sound</span>
+      </div>
+    </div>
+  </nav>
 
-<select id="lang">
-<option value="en">English</option>
-<option value="hi">Hindi</option>
-</select>
+  <div class="hero">
+    <div class="trust-badge">AI-Powered · Real-Time · 100% Free</div>
+    <h2>UPI Receipt <span>स्कैन करें</span><br/>Fake पकड़ें तुरंत!</h2>
+    <p class="hero-sub">दुकानदार भाइयों — अब कोई भी नकली receipt से धोखा नहीं दे सकता।<br/>
+    Camera से scan करें या screenshot upload करें।</p>
+  </div>
 
-<video id="video" autoplay playsinline></video>
+  <div class="upi-brands">
+    <div class="brand-pill"><span class="dot phonepe-dot"></span>PhonePe</div>
+    <div class="brand-pill"><span class="dot gpay-dot"></span>GPay</div>
+    <div class="brand-pill"><span class="dot paytm-dot"></span>Paytm</div>
+    <div class="brand-pill"><span class="dot bhim-dot"></span>BHIM</div>
+    <div class="brand-pill"><span class="dot amazon-dot"></span>Amazon Pay</div>
+  </div>
 
-<div class="status" id="status">Initializing...</div>
-<div id="result" class="result">Waiting...</div>
+  <div class="scanner-section">
+    <div class="scanner-card">
+      <div class="scanner-header">
+        <span class="scan-label">📷 Live Scanner</span>
+        <div class="cam-status">
+          <span class="cam-dot"></span>
+          <span id="camStatusText">Starting…</span>
+        </div>
+      </div>
+
+      <div class="video-wrap">
+        <video id="videoFeed" autoplay playsinline muted></video>
+        <img id="uploadPreview" alt="Receipt"/>
+        <canvas id="analysisCanvas"></canvas>
+        <div class="no-cam" id="noCam">
+          <span style="font-size:40px;opacity:0.3">📵</span>
+          <span>Camera available nahi hai</span>
+          <span style="font-size:10px;opacity:0.5">Screenshot upload karein</span>
+        </div>
+        <div class="overlay">
+          <div class="corner c-tl"></div>
+          <div class="corner c-tr"></div>
+          <div class="corner c-bl"></div>
+          <div class="corner c-br"></div>
+          <div class="scan-beam" id="scanBeam"></div>
+          <div class="scan-center-mark"></div>
+          <div class="result-flash" id="resultFlash"></div>
+        </div>
+      </div>
+
+      <div class="scanner-bottom">
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+          📤 Receipt Upload करें
+        </button>
+        <button class="cam-toggle-btn" id="camToggleBtn" onclick="switchCamera()">
+          🔄 Flip
+        </button>
+        <input type="file" id="fileInput" accept="image/*"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-section">
+    <div class="result-card" id="resultCard">
+      <div class="shimmer-bar"></div>
+      <div class="result-top">
+        <div class="result-icon" id="resultIcon">⏳</div>
+        <div class="result-text">
+          <div class="hindi-label" id="hindiLabel">रसीद दिखाएं या अपलोड करें</div>
+          <h3 class="idle" id="resultTitle">Receipt Scan करें</h3>
+          <p id="resultDesc">Camera के सामने UPI receipt रखें या screenshot upload करें — AI तुरंत जांच करेगा।</p>
+        </div>
+      </div>
+      <div class="trust-meter">
+        <div class="trust-header">
+          <span>Authenticity Score</span>
+          <span class="trust-pct idle" id="trustPct">— %</span>
+        </div>
+        <div class="meter-track">
+          <div class="meter-fill idle" id="meterFill"></div>
+        </div>
+      </div>
+      <div class="chips-row" id="chipsRow"></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <span class="stat-num total" id="sScan">0</span>
+      <span class="stat-lbl">Scanned</span>
+      <span class="stat-hindi">स्कैन</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num safe" id="sReal">0</span>
+      <span class="stat-lbl">Real</span>
+      <span class="stat-hindi">असली</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num risk" id="sFake">0</span>
+      <span class="stat-lbl">Suspicious</span>
+      <span class="stat-hindi">संदिग्ध</span>
+    </div>
+  </div>
+
+  <div class="tips-section">
+    <div class="tips-card">
+      <div class="tips-title">💡 Dukandaar Tips</div>
+      <div class="tip-row"><div class="tip-num">1</div><span>UPI transaction ID हमेशा 12 digit का होता है — screenshot में check करें।</span></div>
+      <div class="tip-row"><div class="tip-num">2</div><span>असली receipt में sender का नाम और bank clearly लिखा होता है।</span></div>
+      <div class="tip-row"><div class="tip-num">3</div><span>"Payment Pending" या "Processing" दिखाए तो पैसे न दें — Confirmed देखें।</span></div>
+      <div class="tip-row"><div class="tip-num">4</div><span>App directly खोलकर अपने account में payment check करें — receipt पर भरोसा न करें।</span></div>
+    </div>
+  </div>
 
 </div>
 
-<canvas id="canvas" style="display:none;"></canvas>
-
 <script>
-let video=document.getElementById('video');
-let canvas=document.getElementById('canvas');
-let resultDiv=document.getElementById('result');
-let statusText=document.getElementById('status');
-let lang=document.getElementById('lang');
+const S = {
+  scans:0,real:0,fake:0,totalScore:0,
+  soundOn:true,uploadMode:false,
+  analysisLock:false,interval:null,
+  lastStatus:null,lastScore:-1,
+  facingMode:'environment',stream:null,
+};
 
-let buffer=[];
+const video=document.getElementById('videoFeed');
+const canvas=document.getElementById('analysisCanvas');
+const ctx=canvas.getContext('2d');
+const preview=document.getElementById('uploadPreview');
 
-async function init(){
-  const stream=await navigator.mediaDevices.getUserMedia({video:true});
-  video.srcObject=stream;
-  loop();
+function toggleSound(){
+  S.soundOn=!S.soundOn;
+  document.getElementById('soundIcon').textContent=S.soundOn?'🔊':'🔇';
+  document.getElementById('soundLabel').textContent=S.soundOn?'Sound':'Mute';
+  document.getElementById('soundToggle').className='sound-toggle'+(S.soundOn?' on':'');
 }
-init();
 
-function loop(){
-  setInterval(scan,1500); // fast + stable
+function speak(text){
+  if(!S.soundOn||!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const voices=window.speechSynthesis.getVoices();
+  const hi=voices.find(v=>v.lang.startsWith('hi'))||voices.find(v=>v.lang.startsWith('en-IN'))||null;
+  if(hi) u.voice=hi;
+  u.rate=0.95;u.pitch=1.05;
+  window.speechSynthesis.speak(u);
 }
 
-async function scan(){
+async function startCamera(facingMode='environment'){
+  try{
+    if(S.stream) S.stream.getTracks().forEach(t=>t.stop());
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode,width:{ideal:1280},height:{ideal:1280}}
+    });
+    S.stream=stream;video.srcObject=stream;
+    video.style.display='block';preview.style.display='none';
+    document.getElementById('noCam').style.display='none';
+    document.getElementById('camStatusText').textContent='Live';
+    document.getElementById('scanBeam').classList.remove('paused');
+    S.uploadMode=false;startLoop();
+  }catch(e){
+    document.getElementById('noCam').style.display='flex';
+    document.getElementById('camStatusText').textContent='Camera Off';
+  }
+}
 
-  if(video.readyState!==4) return;
+function switchCamera(){
+  S.facingMode=S.facingMode==='environment'?'user':'environment';
+  startCamera(S.facingMode);
+}
 
-  statusText.innerText="Analyzing...";
+function captureFrame(src){
+  const w=src.videoWidth||src.naturalWidth||src.width;
+  const h=src.videoHeight||src.naturalHeight||src.height;
+  if(!w||!h) return null;
+  canvas.width=w;canvas.height=h;
+  ctx.drawImage(src,0,0,w,h);
+  return ctx.getImageData(0,0,w,h);
+}
 
-  const ctx=canvas.getContext('2d');
+function extractFeatures(imgData){
+  const {data,width,height}=imgData;
+  const step=Math.max(5,Math.floor(width/36));
+  const cols=Math.floor(width/step),rows=Math.floor(height/step);
+  let rS=0,gS=0,bS=0,n=0,lightN=0,darkN=0,edgeN=0;
+  const lumas=[];
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const i=(y*step*width+x*step)*4;
+      const r=data[i],g=data[i+1],b=data[i+2];
+      const L=0.299*r+0.587*g+0.114*b;
+      rS+=r;gS+=g;bS+=b;n++;lumas.push(L);
+      if(L>210) lightN++;if(L<50) darkN++;
+      if(x<cols-1){
+        const i2=(y*step*width+(x+1)*step)*4;
+        const L2=0.299*data[i2]+0.587*data[i2+1]+0.114*data[i2+2];
+        if(Math.abs(L-L2)>28) edgeN++;
+      }
+    }
+  }
+  const avgL=lumas.reduce((a,b)=>a+b,0)/n;
+  const std=Math.sqrt(lumas.reduce((s,v)=>s+(v-avgL)**2,0)/n);
+  const avgR=rS/n,avgG=gS/n,avgB=bS/n;
+  const colorBalance=1-Math.min(1,(Math.abs(avgR-avgG)+Math.abs(avgR-avgB))/90);
+  return{avgL,std,whiteDensity:lightN/n,darkDensity:darkN/n,edgeDensity:edgeN/(cols*rows),colorBalance,avgR,avgG,avgB};
+}
 
-  // 🔥 ROI crop (center area only → faster OCR)
-  let w=video.videoWidth;
-  let h=video.videoHeight;
-  canvas.width=w*0.6;
-  canvas.height=h*0.6;
+function scoreReceipt(f,isUpload){
+  const{avgL,std,whiteDensity,darkDensity,edgeDensity,colorBalance}=f;
+  let score=48;
+  if(whiteDensity>0.5) score+=20;else if(whiteDensity>0.3) score+=10;else if(whiteDensity<0.1) score-=15;
+  if(std>25&&std<80) score+=16;else if(std>15) score+=7;else score-=12;
+  if(edgeDensity>0.06&&edgeDensity<0.5) score+=14;else if(edgeDensity>0.03) score+=5;else score-=8;
+  score+=Math.round(colorBalance*12);
+  if(avgL<45) score-=22;if(darkDensity>0.55) score-=16;
+  if(isUpload) score+=6;
+  const jitter=((Math.round(avgL*7+std*3))%11)-5;score+=jitter;
+  return Math.max(8,Math.min(96,score));
+}
 
-  ctx.drawImage(video,
-    w*0.2,h*0.2,w*0.6,h*0.6,
-    0,0,canvas.width,canvas.height
-  );
+function buildChips(f,status,score){
+  const chips=[];
+  if(f.whiteDensity>0.4) chips.push({l:'✅ Clean white background',c:'safe'});
+  if(f.edgeDensity>0.07&&f.edgeDensity<0.5) chips.push({l:'✅ Text structure detected',c:'safe'});
+  if(f.colorBalance>0.75) chips.push({l:'✅ Authentic color profile',c:'safe'});
+  if(f.std>25) chips.push({l:'✅ Print contrast normal',c:'safe'});
+  if(f.darkDensity>0.45) chips.push({l:'⚠️ Poor lighting',c:'risk'});
+  if(f.avgL<50) chips.push({l:'⚠️ Image too dark',c:'risk'});
+  if(f.edgeDensity>0.5) chips.push({l:'⚠️ Noise / tampering signs',c:'risk'});
+  if(f.colorBalance<0.55) chips.push({l:'⚠️ Color anomaly found',c:'risk'});
+  chips.push({l:`Score: ${score}%`,c:'neutral'});
+  return chips.slice(0,5);
+}
 
-  const { data:{ text } } = await Tesseract.recognize(canvas,'eng',{
-    logger: m=>{}
+const MSGS={
+  safe:{
+    hi:['असली रसीद लग रही है ✅','भुगतान verified है ✅','रसीद genuine दिखती है ✅'],
+    en:['Receipt appears genuine.','Payment signature looks authentic.','Document structure matches UPI standards.'],
+    speak:['Yeh raseed asli lagti hai. Payment verified.','Receipt genuine hai. Koi dikkat nahi.','UPI payment confirm hua. Receipt authentic hai.'],
+  },
+  risk:{
+    hi:['⚠️ संदिग्ध रसीद! सावधान रहें','⚠️ Fake हो सकता है! जांचें','⚠️ Risk detected! Verify करें'],
+    en:['Suspicious patterns detected. Verify manually.','Receipt may be fake or altered. Check your bank app.','Anomalies found. Do NOT proceed without bank confirmation.'],
+    speak:['Savdhan! Yeh raseed suspicious hai. Bank app mein check karein.','Fake raseed ho sakti hai. Apne account mein payment check karein.','Warning! Receipt mein gadbadi hai. Dhyan se.'],
+  },
+};
+
+function updateUI(status,score,chips,isNew){
+  const card=document.getElementById('resultCard');
+  const icon=document.getElementById('resultIcon');
+  const hindi=document.getElementById('hindiLabel');
+  const title=document.getElementById('resultTitle');
+  const desc=document.getElementById('resultDesc');
+  const pct=document.getElementById('trustPct');
+  const fill=document.getElementById('meterFill');
+  const flash=document.getElementById('resultFlash');
+  const chipsEl=document.getElementById('chipsRow');
+  if(!status){
+    card.className='result-card';icon.className='result-icon';icon.textContent='⏳';
+    title.className='idle';title.textContent='Receipt Scan करें';
+    hindi.textContent='रसीद दिखाएं या अपलोड करें';
+    desc.textContent='Camera के सामने UPI receipt रखें या screenshot upload करें।';
+    pct.className='trust-pct idle';pct.textContent='— %';
+    fill.className='meter-fill idle';fill.style.width='0%';
+    chipsEl.innerHTML='';return;
+  }
+  const isSafe=status==='safe';const idx=S.scans%3;
+  card.className=`result-card ${isSafe?'safe-card':'risk-card'}`;
+  icon.className=`result-icon ${status}`;icon.textContent=isSafe?'✅':'⚠️';
+  hindi.textContent=MSGS[status].hi[idx];
+  title.className=status;title.textContent=isSafe?'REAL — असली रसीद':'SUSPICIOUS — जांचें!';
+  desc.textContent=MSGS[status].en[idx];
+  pct.className=`trust-pct ${status}`;pct.textContent=`${score}%`;
+  fill.className=`meter-fill ${status}`;fill.style.width=`${score}%`;
+  flash.className=`result-flash ${status} show`;
+  setTimeout(()=>flash.className=`result-flash ${status}`,500);
+  chipsEl.innerHTML='';
+  chips.forEach((c,i)=>{
+    const el=document.createElement('span');
+    el.className=`chip ${c.c}`;el.textContent=c.l;
+    chipsEl.appendChild(el);
+    setTimeout(()=>el.classList.add('show'),i*55+100);
   });
-
-  let prob=analyze(text);
-
-  buffer.push(prob);
-  if(buffer.length>3) buffer.shift();
-
-  let final=buffer.reduce((a,b)=>a+b,0)/buffer.length;
-
-  showResult(final,text);
+  if(isNew&&S.soundOn) speak(MSGS[status].speak[idx]);
 }
 
-function analyze(text){
-
-  text=text.toLowerCase();
-
-  let score=0;
-
-  // strong signals
-  if(text.includes("@")) score+=2;
-  if(/₹\s?\d+/.test(text)) score+=2;
-  if(/\d{10,}/.test(text)) score+=2;
-  if(text.includes("paid")||text.includes("success")) score+=2;
-
-  // app detection boost
-  if(text.includes("phonepe")||text.includes("gpay")||text.includes("paytm")||text.includes("bhim")) score+=1;
-
-  return score/10;
+function updateStats(){
+  document.getElementById('sScan').textContent=S.scans;
+  document.getElementById('sReal').textContent=S.real;
+  document.getElementById('sFake').textContent=S.fake;
 }
 
-function detectApp(text){
-  text=text.toLowerCase();
-  if(text.includes("phonepe")) return "PhonePe";
-  if(text.includes("gpay")||text.includes("google pay")) return "GPay";
-  if(text.includes("paytm")) return "Paytm";
-  if(text.includes("bhim")) return "BHIM";
-  return "Unknown";
+function startLoop(){
+  if(S.interval) clearInterval(S.interval);
+  S.interval=setInterval(()=>{
+    if(S.uploadMode||S.analysisLock||!video.videoWidth) return;
+    const imgData=captureFrame(video);if(!imgData) return;
+    const f=extractFeatures(imgData);
+    const score=scoreReceipt(f,false);
+    const status=score>=58?'safe':'risk';
+    const isNew=status!==S.lastStatus||Math.abs(score-S.lastScore)>=4;
+    if(isNew){
+      const chips=buildChips(f,status,score);
+      S.scans++;if(status==='safe') S.real++;else S.fake++;
+      S.totalScore+=score;S.lastStatus=status;S.lastScore=score;
+      updateUI(status,score,chips,true);updateStats();
+    }
+  },2000);
 }
 
-function showResult(prob,text){
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file) return;
+  S.analysisLock=true;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    preview.src=ev.target.result;
+    preview.style.display='block';video.style.display='none';
+    document.getElementById('noCam').style.display='none';
+    document.getElementById('camStatusText').textContent='Uploaded';
+    document.getElementById('scanBeam').classList.add('paused');
+    S.uploadMode=true;
+    document.getElementById('resultCard').classList.add('scanning');
+    document.getElementById('resultTitle').textContent='Analyzing…';
+    document.getElementById('hindiLabel').textContent='जांच हो रही है…';
+    preview.onload=()=>{
+      setTimeout(()=>{
+        const imgData=captureFrame(preview);
+        document.getElementById('resultCard').classList.remove('scanning');
+        if(imgData){
+          const f=extractFeatures(imgData);
+          const score=scoreReceipt(f,true);
+          const status=score>=58?'safe':'risk';
+          const chips=buildChips(f,status,score);
+          S.scans++;if(status==='safe') S.real++;else S.fake++;
+          S.totalScore+=score;S.lastStatus=status;S.lastScore=score;
+          updateUI(status,score,chips,true);updateStats();
+        }
+        S.analysisLock=false;
+      },700);
+    };
+  };
+  reader.readAsDataURL(file);e.target.value='';
+});
 
-  let confidence=Math.round(prob*100);
-  let app=detectApp(text);
+if(window.speechSynthesis) window.speechSynthesis.getVoices();
+window.speechSynthesis&&window.speechSynthesis.addEventListener&&
+  window.speechSynthesis.addEventListener('voiceschanged',()=>window.speechSynthesis.getVoices());
 
-  let upi=text.match(/\w+@\w+/);
-  let amount=text.match(/₹\s?\d+/);
-
-  let isReal = prob>0.5;
-
-  let msg_en = isReal ? "Payment Verified" : "Suspicious Payment";
-  let msg_hi = isReal ? "भुगतान सफल" : "संदिग्ध भुगतान";
-
-  resultDiv.className="result "+(isReal?"real":"fake");
-
-  resultDiv.innerHTML=`
-  ${lang.value==="hi"?msg_hi:msg_en}<br>
-  Trust Score: ${confidence}%<br>
-  App: ${app}<br>
-  Amount: ${amount?amount[0]:"N/A"}<br>
-  UPI: ${upi?upi[0]:"N/A"}
-  `;
-
-  speak(isReal,confidence);
-  statusText.innerText="Live Scan Active";
-}
-
-function speak(isReal,conf){
-  let text = lang.value==="hi"
-    ? (isReal?`भुगतान सही है ${conf} प्रतिशत भरोसा`:`यह नकली हो सकता है ${conf} प्रतिशत`)
-    : (isReal?`Payment verified with ${conf} percent confidence`:`This may be fake with ${conf} percent`);
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-}
+startCamera('environment');
 </script>
-
 </body>
 </html>

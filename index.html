@@ -3,167 +3,744 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AuthentiPay AI - Final Auditor</title>
+<title>AuthentiPay AI — Forensic Studio</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root { --p: #0ea5e9; --d: #0f172a; --w: #ffffff; --r: #f43f5e; }
-body { margin:0; font-family:'Inter', sans-serif; background: var(--d); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; color: #fff; overflow: hidden; }
-.box { width:100%; max-width:400px; background:var(--w); border-radius:35px; padding:25px; color: #1e293b; box-shadow:0 30px 60px rgba(0,0,0,0.8); position: relative; }
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#0a0a0a;
+  --white:#f5f3ee;
+  --accent:#c8f135;
+  --danger:#ff4444;
+  --warn:#ffaa00;
+  --ok:#c8f135;
+  --glass:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.08);
+}
+body{
+  background:var(--black);
+  color:var(--white);
+  font-family:'Syne',sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  overflow-x:hidden;
+}
+.grid-bg{
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(200,241,53,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(200,241,53,0.025) 1px,transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+.app{width:100%;max-width:480px;position:relative;z-index:1}
 
-/* LEFT TOP FAKE LOG */
-#logBox { position: absolute; top: -15px; left: -10px; background: var(--r); color: #fff; padding: 12px; border-radius: 18px; font-size: 10px; font-weight: 800; text-align: left; box-shadow: 0 10px 25px rgba(244, 63, 94, 0.4); z-index: 50; width: 130px; max-height: 160px; overflow-y: auto; border: 2px solid #fff; }
+/* TOP BAR */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+.logo{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--accent);text-transform:uppercase}
+.version{font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.1);padding:4px 10px;border-radius:4px}
 
-.viewport { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin: 15px 0; border: 3px solid var(--p); max-height: 380px; display: none; }
-#vid, #prev { width: 100%; height: auto; display: block; }
-.line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: var(--p); box-shadow: 0 0 20px var(--p); animation: s 2s infinite linear; }
-@keyframes s { 0% { top: 0%; } 100% { top: 100%; } }
+/* TITLE */
+.main-title{font-size:42px;font-weight:800;line-height:1;margin-bottom:6px;letter-spacing:-2px}
+.main-title span{color:var(--accent)}
+.subtitle{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px}
 
-.btn { width: 100%; padding: 18px; border-radius: 18px; border: none; font-weight: 1000; cursor: pointer; margin-top: 10px; font-size: 14px; text-transform: uppercase; transition: 0.2s; }
-.b-m { background: var(--p); color: #fff; box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
-.b-a { background: #f1f5f9; color: var(--d); border: 2px solid #e2e8f0; }
+/* MODEL BADGE */
+.model-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(200,241,53,0.08);border:1px solid rgba(200,241,53,0.2);
+  border-radius:20px;padding:5px 12px;margin-bottom:24px;
+}
+.model-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.model-label{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;font-family:'Space Mono',monospace}
 
-.dash { background: #f8fafc; border-radius: 22px; padding: 18px; margin-top: 20px; border: 1px solid #e2e8f0; display: flex; justify-content: space-around; }
-.stat { text-align: center; }
-.val { font-size: 24px; font-weight: 1000; color: var(--d); }
-.lbl { font-size: 9px; color: #64748b; font-weight: 900; letter-spacing: 1px; }
+/* UPLOAD ZONE */
+.upload-zone{
+  border:1.5px dashed rgba(200,241,53,0.3);
+  border-radius:16px;padding:40px 20px;
+  text-align:center;cursor:pointer;
+  transition:all 0.3s;position:relative;overflow:hidden;
+  background:rgba(200,241,53,0.02);
+}
+.upload-zone:hover{border-color:var(--accent);background:rgba(200,241,53,0.05)}
+.upload-zone.dragover{border-color:var(--accent);background:rgba(200,241,53,0.08);transform:scale(1.01)}
+.scan-ring{
+  width:64px;height:64px;border-radius:50%;
+  border:2px solid rgba(200,241,53,0.2);
+  margin:0 auto 16px;
+  display:flex;align-items:center;justify-content:center;position:relative;
+}
+.scan-ring::before{content:'';position:absolute;inset:-6px;border-radius:50%;border:1px solid rgba(200,241,53,0.08)}
+.upload-text{font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:4px}
+.upload-sub{font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:1px}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:0;display:none;animation:scanDown 1.5s ease-in-out infinite}
+@keyframes scanDown{0%{top:0;opacity:1}100%{top:100%;opacity:0.1}}
 
-#over { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); display: none; place-items: center; z-index: 100; backdrop-filter: blur(15px); }
-.mod { background: #fff; padding: 35px; border-radius: 35px; width: 80%; text-align: center; color: #1e293b; border: 4px solid var(--p); }
+/* CONTROLS */
+.controls{display:flex;gap:10px;margin:16px 0}
+.ctrl-btn{
+  flex:1;padding:12px;
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:10px;color:var(--white);
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;
+}
+.ctrl-btn:hover{background:rgba(255,255,255,0.08)}
+.ctrl-btn.active{background:rgba(200,241,53,0.15);border-color:rgba(200,241,53,0.4);color:var(--accent)}
+.sound-btn{
+  display:flex;align-items:center;gap:6px;padding:12px 16px;
+  background:var(--glass);border:1px solid var(--border);border-radius:10px;
+  color:var(--white);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;white-space:nowrap;
+}
+.sound-btn:hover{background:rgba(255,255,255,0.08)}
+.sound-btn.muted{color:rgba(255,255,255,0.3);border-color:rgba(255,255,255,0.05)}
+
+/* PROGRESS */
+.progress-wrap{margin:20px 0;display:none}
+.progress-label{display:flex;justify-content:space-between;margin-bottom:8px}
+.progress-label span{font-family:'Space Mono',monospace;font-size:11px;color:rgba(255,255,255,0.4)}
+.progress-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width 0.4s ease;border-radius:2px}
+.progress-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:14px}
+.step{
+  font-size:9px;color:rgba(255,255,255,0.2);
+  font-family:'Space Mono',monospace;letter-spacing:0.3px;
+  text-align:center;padding:6px 4px;
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:6px;transition:all 0.3s;
+}
+.step.active{color:var(--accent);border-color:rgba(200,241,53,0.3);background:rgba(200,241,53,0.05)}
+.step.done{color:rgba(200,241,53,0.4);border-color:rgba(200,241,53,0.12)}
+
+/* RESULT CARD */
+.result-card{margin:20px 0;border-radius:14px;overflow:hidden;display:none;animation:fadeIn 0.5s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.result-header{padding:16px 20px;display:flex;align-items:flex-start;gap:12px}
+.result-header.ok{background:rgba(200,241,53,0.1);border:1px solid rgba(200,241,53,0.25)}
+.result-header.fail{background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.2)}
+.result-header.warn{background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.2)}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.ok .status-dot{background:var(--accent)}
+.fail .status-dot{background:var(--danger)}
+.warn .status-dot{background:var(--warn)}
+.status-title{font-size:16px;font-weight:700}
+.ok .status-title{color:var(--accent)}
+.fail .status-title{color:var(--danger)}
+.warn .status-title{color:var(--warn)}
+.status-sub{font-size:11px;color:rgba(255,255,255,0.45);margin-top:4px;font-family:'Space Mono',monospace;line-height:1.5}
+
+/* AI REASONING BOX */
+.ai-reason{
+  background:rgba(255,255,255,0.02);
+  border-left:2px solid rgba(200,241,53,0.3);
+  border-radius:0 8px 8px 0;
+  padding:10px 14px;margin-top:10px;
+  font-size:11px;color:rgba(255,255,255,0.5);
+  font-family:'Space Mono',monospace;line-height:1.6;
+  display:none;
+}
+.ai-reason.fail-reason{border-left-color:rgba(255,68,68,0.4)}
+.ai-reason.warn-reason{border-left-color:rgba(255,170,0,0.4)}
+
+/* CONFIDENCE BAR */
+.confidence-wrap{padding:14px 20px;background:rgba(255,255,255,0.02);border-top:1px solid rgba(255,255,255,0.04)}
+.conf-label{font-size:10px;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:1.5px;font-family:'Space Mono',monospace;margin-bottom:8px}
+.conf-bar-outer{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.conf-bar-inner{height:100%;border-radius:2px;transition:width 1s ease}
+.conf-pct{font-size:12px;font-weight:700;margin-top:6px;font-family:'Space Mono',monospace}
+
+/* DATA GRID */
+.data-grid{
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.06);
+  border-top:none;border-radius:0 0 14px 14px;
+  padding:16px 20px;
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.data-item .lbl{font-size:10px;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:1.5px;font-family:'Space Mono',monospace;margin-bottom:4px}
+.data-item .val{font-size:13px;font-weight:700;color:var(--white);font-family:'Space Mono',monospace;word-break:break-all}
+.data-item.full{grid-column:1/-1}
+
+/* SIGNALS LIST */
+.signals{padding:12px 20px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.05);border-top:none;display:none}
+.sig-title{font-size:9px;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:2px;font-family:'Space Mono',monospace;margin-bottom:8px}
+.sig-item{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;color:rgba(255,255,255,0.5);font-family:'Space Mono',monospace}
+.sig-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.sig-ok{background:var(--accent)}
+.sig-bad{background:var(--danger)}
+.sig-warn{background:var(--warn)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:20px 0}
+.stat{background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.stat .sv{font-family:'Space Mono',monospace;font-size:18px;font-weight:700}
+.stat .sl{font-size:9px;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px}
+.stat.revenue .sv{color:var(--accent)}
+.stat.blocked .sv{color:var(--danger)}
+.stat.total .sv{color:rgba(255,255,255,0.5)}
+
+/* PREVIEW */
+.preview-img{
+  width:100%;border-radius:10px;margin-bottom:16px;
+  border:1px solid rgba(255,255,255,0.08);
+  display:none;max-height:200px;object-fit:contain;
+}
+
+.reset-btn{
+  width:100%;padding:14px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;color:rgba(255,255,255,0.4);
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;
+  cursor:pointer;letter-spacing:2px;text-transform:uppercase;
+  transition:all 0.2s;display:none;margin-top:12px;
+}
+.reset-btn:hover{background:rgba(255,255,255,0.08);color:var(--white)}
+
+/* API KEY SETUP */
+.apikey-bar{
+  background:rgba(200,241,53,0.06);
+  border:1px solid rgba(200,241,53,0.2);
+  border-radius:10px;padding:14px 16px;
+  margin-bottom:16px;display:flex;gap:8px;align-items:center;
+}
+.apikey-bar input{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:'Space Mono',monospace;font-size:11px;color:var(--white);
+}
+.apikey-bar input::placeholder{color:rgba(255,255,255,0.2)}
+.apikey-bar button{
+  background:var(--accent);color:#000;border:none;
+  border-radius:6px;padding:6px 12px;font-family:'Syne',sans-serif;
+  font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+}
+.apikey-status{font-size:10px;margin-bottom:12px;font-family:'Space Mono',monospace;padding:6px 12px;border-radius:6px;text-align:center;display:none}
+.apikey-status.set{background:rgba(200,241,53,0.1);color:var(--accent);border:1px solid rgba(200,241,53,0.2)}
+.apikey-status.notset{background:rgba(255,68,68,0.08);color:rgba(255,100,100,0.8);border:1px solid rgba(255,68,68,0.15)}
+
+canvas{display:none}
 </style>
 </head>
 <body>
+<div class="grid-bg"></div>
+<div class="app">
 
-<div id="logBox">🚨 FAKE DETECTED:<br><div id="logList" style="margin-top:5px; opacity:0.9;">No logs yet</div></div>
-
-<div class="box">
-  <h2 style="margin:0; font-weight: 1000; font-size: 28px; color: #000; letter-spacing: -1px;">AuthentiPay <span style="color:var(--p)">AI</span></h2>
-  <p style="font-size: 10px; color: #94a3b8; font-weight: 900; letter-spacing: 2px; margin-bottom: 5px;">ULTIMATE AUDITOR v4.0</p>
-
-  <div id="ui">
-    <button class="btn b-m" onclick="startCam()">START SCANNER</button>
-    <button class="btn b-a" onclick="document.getElementById('fileIn').click()">UPLOAD FROM GALLERY</button>
+  <!-- TOP -->
+  <div class="topbar">
+    <div class="logo">AuthentiPay</div>
+    <div class="version">FORENSIC v13</div>
   </div>
-  <input type="file" id="fileIn" hidden accept="image/*">
+  <div class="main-title">Payment<br><span>Verify.</span></div>
+  <div class="subtitle">AI-Powered Receipt Forensics</div>
 
-  <div id="vBox" class="viewport">
-    <div class="line"></div>
-    <video id="vid" autoplay playsinline></video>
-    <img id="prev" style="display:none">
+  <div class="model-badge">
+    <div class="model-dot"></div>
+    <span class="model-label">Claude AI · Fraud Detection Model</span>
   </div>
-  <button id="snap" class="btn b-m" style="display:none" onclick="capture()">VERIFY RECEIPT</button>
 
-  <div class="dash">
-    <div class="stat"><div class="val" id="totalDisp">₹0</div><div class="lbl">TOTAL REVENUE</div></div>
-    <div class="stat"><div class="val" id="fakeDisp" style="color:var(--r)">0</div><div class="lbl">FAKES BLOCKED</div></div>
+  <!-- API KEY INPUT -->
+  <div class="apikey-bar">
+    <input type="password" id="apiKeyInput" placeholder="Enter Anthropic API Key (sk-ant-...)">
+    <button onclick="saveKey()">Save</button>
   </div>
+  <div class="apikey-status" id="apiKeyStatus"></div>
+
+  <!-- PREVIEW -->
+  <img id="previewImg" class="preview-img" alt="uploaded receipt">
+
+  <!-- UPLOAD ZONE -->
+  <div class="upload-zone" id="dropZone" onclick="document.getElementById('fIn').click()">
+    <div class="scan-line" id="scanLine"></div>
+    <div class="scan-ring">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect x="1" y="1" width="8" height="8" rx="2" stroke="#c8f135" stroke-width="1.5"/>
+        <rect x="19" y="1" width="8" height="8" rx="2" stroke="#c8f135" stroke-width="1.5"/>
+        <rect x="1" y="19" width="8" height="8" rx="2" stroke="#c8f135" stroke-width="1.5"/>
+        <path d="M21 14h6M14 21v6M14 7V1M7 14H1M19 14h-5v-5" stroke="rgba(200,241,53,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="upload-text">Drop receipt or tap to upload</div>
+    <div class="upload-sub">PNG · JPG · JPEG · WEBP</div>
+  </div>
+  <input type="file" id="fIn" hidden accept="image/*">
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="ctrl-btn active" id="modeBtn" onclick="toggleMode()">AI + OCR Mode</button>
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">
+      <span id="soundIcon">🔊</span>
+      <span id="soundLabel">Sound ON</span>
+    </button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label">
+      <span id="progressLabel">Initializing...</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-steps">
+      <div class="step" id="s0">UPLOAD</div>
+      <div class="step" id="s1">OCR</div>
+      <div class="step" id="s2">EXTRACT</div>
+      <div class="step" id="s3">AI MODEL</div>
+      <div class="step" id="s4">VERDICT</div>
+    </div>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header" id="resultHeader">
+      <div class="status-dot"></div>
+      <div style="flex:1">
+        <div class="status-title" id="statusTitle">—</div>
+        <div class="status-sub" id="statusSub">—</div>
+        <div class="ai-reason" id="aiReason"></div>
+      </div>
+    </div>
+    <div class="confidence-wrap" id="confWrap">
+      <div class="conf-label">AI Confidence Score</div>
+      <div class="conf-bar-outer"><div class="conf-bar-inner" id="confBar"></div></div>
+      <div class="conf-pct" id="confPct"></div>
+    </div>
+    <div class="signals" id="signalsList">
+      <div class="sig-title">Detection Signals</div>
+      <div id="sigItems"></div>
+    </div>
+    <div class="data-grid">
+      <div class="data-item"><div class="lbl">Amount</div><div class="val" id="resAmt">—</div></div>
+      <div class="data-item"><div class="lbl">Verdict</div><div class="val" id="resMatch">—</div></div>
+      <div class="data-item full"><div class="lbl">Transaction ID</div><div class="val" id="resTid">—</div></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat revenue"><div class="sv" id="revDisp">₹0</div><div class="sl">Revenue</div></div>
+    <div class="stat blocked"><div class="sv" id="fakeDisp">0</div><div class="sl">Blocked</div></div>
+    <div class="stat total"><div class="sv" id="totalDisp">0</div><div class="sl">Scanned</div></div>
+  </div>
+
+  <button class="reset-btn" id="resetBtn" onclick="resetApp()">↺ Scan Another</button>
 </div>
-
-<div id="over">
-  <div class="mod">
-    <div id="ico" style="font-size: 80px;"></div>
-    <h2 id="tit" style="margin: 10px 0; font-weight: 1000;"></h2>
-    <p id="txt" style="color: #64748b; font-size: 14px; font-weight: 700; margin-bottom: 25px;"></p>
-    <button class="btn b-m" onclick="location.reload()">NEXT SCAN</button>
-  </div>
-</div>
-
-<canvas id="can" hidden></canvas>
+<canvas id="can"></canvas>
 
 <script>
-let db = JSON.parse(localStorage.getItem('ap_ultra_v4')) || { revenue: 0, fakeCount: 0, fakes: [], usedIDs: {} };
-let stream = null;
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let db = JSON.parse(localStorage.getItem('ap_v13') || 'null') || {r:0,f:0,t:0,used:{}};
+let soundOn = true;
+let aiMode = true;
+let apiKey = localStorage.getItem('ap_apikey') || '';
 
-function sync() {
-    totalDisp.innerText = `₹${db.revenue.toLocaleString('en-IN')}`;
-    fakeDisp.innerText = db.fakeCount;
-    if(db.fakes.length > 0) {
-        logList.innerHTML = db.fakes.slice(-6).reverse().map(f => `• ${f}`).join('<br>');
-    }
+// ─── AUDIO ───────────────────────────────────────────────────────────────────
+const AC = new (window.AudioContext || window.webkitAudioContext || class{})();
+function beep(freq=440,dur=0.15,type='sine',vol=0.3){
+  if(!soundOn||!AC.createOscillator) return;
+  try{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+dur);
+    o.start();o.stop(AC.currentTime+dur);
+  }catch(e){}
+}
+function playSuccess(){beep(523,0.1);setTimeout(()=>beep(659,0.1),120);setTimeout(()=>beep(784,0.25),240)}
+function playFail(){beep(200,0.3,'sawtooth',0.2);setTimeout(()=>beep(150,0.4,'sawtooth',0.2),200)}
+function playWarn(){beep(440,0.15);setTimeout(()=>beep(440,0.3),200)}
+function playScan(){beep(1200,0.05,'square',0.08);setTimeout(()=>beep(1400,0.05,'square',0.08),80)}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function sync(){
+  revDisp.innerText=`₹${db.r.toLocaleString('en-IN')}`;
+  fakeDisp.innerText=db.f;
+  totalDisp.innerText=db.t;
 }
 sync();
 
-async function startCam() {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 } } });
-    vid.srcObject = stream;
-    vBox.style.display = "block"; ui.style.display = "none"; snap.style.display = "block";
-  } catch(e) { alert("Camera Error"); }
+// Show API key status
+if(apiKey){
+  apiKeyInput.value='••••••••••••••••';
+  showKeyStatus(true);
 }
 
-function capture() {
-  const ctx = can.getContext('2d');
-  can.width = vid.videoWidth; can.height = vid.videoHeight;
-  ctx.filter = "contrast(1.6) brightness(1.1) grayscale(1)";
-  ctx.drawImage(vid, 0, 0);
-  const data = can.toDataURL('image/jpeg', 0.9);
-  vid.style.display = "none"; prev.src = data; prev.style.display = "block"; snap.style.display = "none";
-  if(stream) stream.getTracks().forEach(t => t.stop());
-  process(data);
-}
-
-fileIn.onchange = (e) => {
-  const r = new FileReader();
-  r.onload = (f) => {
-    vBox.style.display = "block"; prev.src = f.target.result; prev.style.display = "block"; ui.style.display = "none";
-    process(f.target.result);
-  };
-  r.readAsDataURL(e.target.files[0]);
-};
-
-async function process(img) {
-  const { data: { text } } = await Tesseract.recognize(img, 'eng');
-  analyze(text);
-}
-
-function analyze(raw) {
-  const r = raw.toLowerCase();
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  // 1. ADVANCED AMOUNT DETECTION (Handles ₹5,500 style)
-  const amtMatch = raw.match(/₹?\s?([\d,]+\.\d{2})/) || raw.match(/₹\s?([\d,]+)/);
-  let amt = amtMatch ? parseFloat(amtMatch[1].replace(/,/g, '')) : 0;
-
-  // 2. TRANSACTION ID DETECTION (UTR/Ref/Txn)
-  const tidMatch = raw.match(/[T|t]\d{15,25}/) || raw.match(/\d{12}/) || raw.match(/UTR[:\s]+(\d+)/i);
-  const tid = tidMatch ? (tidMatch[1] || tidMatch[0]) : null;
-
-  // 3. STATUS & TRUST MARKERS
-  const isOk = r.includes('success') || r.includes('successful') || r.includes('paid') || r.includes('credited');
-  const hasBank = r.includes('bank') || r.includes('credited to') || r.includes('utr');
-
-  // DUPLICATE CHECK LOGIC
-  if(tid && db.usedIDs[tid]) {
-      showModal("⚠️", "DUPLICATE", `This was already scanned at ${db.usedIDs[tid]}. Don't get scammed!`);
-      talk("Warning! Duplicate receipt detected.");
-      return;
+function saveKey(){
+  const k = apiKeyInput.value.trim();
+  if(!k || k==='••••••••••••••••') return;
+  if(!k.startsWith('sk-ant-')){
+    showKeyStatus(false,'Key must start with sk-ant-');return;
   }
+  apiKey = k;
+  localStorage.setItem('ap_apikey', k);
+  apiKeyInput.value='••••••••••••••••';
+  showKeyStatus(true);
+  beep(600,0.1);
+}
 
-  // FINAL VERIFICATION
-  if(amt > 0 && isOk && (tid || hasBank)) {
-      db.revenue += amt;
-      if(tid) db.usedIDs[tid] = time;
-      save();
-      showModal("✅", "REAL PAYMENT", `Verified ₹${amt}. Marker: ${tid || 'Bank Confirmed'}`);
-      talk("Payment verified.");
+function showKeyStatus(ok, msg=''){
+  const el=document.getElementById('apiKeyStatus');
+  el.style.display='block';
+  if(ok){
+    el.className='apikey-status set';
+    el.innerText='✓ API KEY ACTIVE — Claude AI fraud detection enabled';
   } else {
-      db.fakeCount++;
-      db.fakes.push(`${time}: ₹${amt || '??'}`);
-      save();
-      showModal("❌", "FAKE / INVALID", "Missing security markers or UTR. This receipt is not verified.");
-      talk("Fake receipt alert.");
+    el.className='apikey-status notset';
+    el.innerText= msg || '✗ NO API KEY — using rule-based detection only';
   }
 }
 
-function save() { localStorage.setItem('ap_ultra_v4', JSON.stringify(db)); sync(); }
-
-function showModal(i, t, x) {
-  over.style.display = "grid"; ico.innerText = i; tit.innerText = t; txt.innerText = x;
+// ─── CONTROLS ─────────────────────────────────────────────────────────────────
+function toggleSound(){
+  soundOn=!soundOn;
+  soundIcon.innerText=soundOn?'🔊':'🔇';
+  soundLabel.innerText=soundOn?'Sound ON':'Sound OFF';
+  soundBtn.className='sound-btn'+(soundOn?'':' muted');
+  if(soundOn) beep(600,0.1);
+}
+function toggleMode(){
+  aiMode=!aiMode;
+  modeBtn.innerText=aiMode?'AI + OCR Mode':'OCR Only Mode';
+  modeBtn.className='ctrl-btn'+(aiMode?' active':'');
 }
 
-function talk(t) {
-  const u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; window.speechSynthesis.speak(u);
+// ─── DRAG & DROP ──────────────────────────────────────────────────────────────
+const dropZone=document.getElementById('dropZone');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{
+  e.preventDefault();dropZone.classList.remove('dragover');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')) processFile(f);
+});
+fIn.onchange=e=>processFile(e.target.files[0]);
+
+// ─── FILE PROCESSING ──────────────────────────────────────────────────────────
+function processFile(file){
+  if(!file) return;
+  beep(800,0.1);
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      previewImg.src=ev.target.result;
+      previewImg.style.display='block';
+      dropZone.style.display='none';
+      startScan(img, ev.target.result);
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
 }
+
+function setProgress(pct,label,step){
+  progressFill.style.width=pct+'%';
+  progressLabel.innerText=label;
+  progressPct.innerText=pct+'%';
+  ['s0','s1','s2','s3','s4'].forEach((s,i)=>{
+    document.getElementById(s).className='step'+(i<step?' done':i===step?' active':'');
+  });
+  if(pct>10&&pct<90) playScan();
+}
+
+async function startScan(imgEl, originalSrc){
+  progressWrap.style.display='block';
+  resultCard.style.display='none';
+  resetBtn.style.display='none';
+  scanLine.style.display='block';
+
+  setProgress(8,'Uploading image...',0);
+  await delay(400);
+
+  // Pre-process for OCR
+  const ctx=can.getContext('2d');
+  can.width=imgEl.width; can.height=imgEl.height;
+  ctx.filter='grayscale(1) contrast(3.5) brightness(1.1)';
+  ctx.drawImage(imgEl,0,0);
+  const forensicSrc=can.toDataURL('image/jpeg',1.0);
+
+  setProgress(25,'Running OCR scan...',1);
+
+  // OCR
+  let rawText = '';
+  try{
+    const worker=await Tesseract.createWorker();
+    await worker.loadLanguage('eng');
+    await worker.initialize('eng');
+    const {data:{text}}=await worker.recognize(forensicSrc);
+    await worker.terminate();
+    rawText=text;
+  } catch(e){ rawText=''; }
+
+  setProgress(50,'Extracting payment data...',2);
+  await delay(300);
+
+  const extracted = extractData(rawText);
+  resAmt.innerText = extracted.amt>0 ? '₹'+extracted.amt.toLocaleString('en-IN') : 'Not detected';
+  resTid.innerText = extracted.tid ? (extracted.tid.length>20?extracted.tid.substring(0,20)+'…':extracted.tid) : 'Not found';
+
+  setProgress(70,'Running AI fraud model...',3);
+  await delay(300);
+
+  // AI ANALYSIS
+  let result;
+  if(aiMode && apiKey){
+    result = await runClaudeAnalysis(rawText, originalSrc, extracted);
+  } else {
+    result = ruleBasedAnalysis(rawText, extracted);
+  }
+
+  setProgress(95,'Generating verdict...',4);
+  await delay(400);
+  setProgress(100,'Complete',4);
+  scanLine.style.display='none';
+  await delay(300);
+
+  finalizeResult(result, extracted);
+}
+
+// ─── DATA EXTRACTION ──────────────────────────────────────────────────────────
+function extractData(raw){
+  const amtM = raw.match(/₹?\s?([\d,]+\.\d{2})/) || raw.match(/₹\s?([\d,]+)/) || raw.match(/(\d+\.\d{2})/);
+  const amt = amtM ? parseFloat(amtM[1].replace(/,/g,'')) : 0;
+  const tidM = raw.match(/[Tt]2\d{18,22}/) || raw.match(/UTR[:\s]*([A-Z0-9]+)/i) || raw.match(/\b\d{12}\b/);
+  const tid = tidM ? (tidM[1]||tidM[0]) : null;
+  const t=raw.toLowerCase();
+  const isSuccess = t.includes('success')||t.includes('paid')||t.includes('received')||t.includes('completed')||t.includes('debit');
+  const hasUPI = t.includes('upi')||t.includes('bhim')||t.includes('gpay')||t.includes('phonepe')||t.includes('paytm')||t.includes('razorpay');
+  const hasBank = t.includes('bank')||t.includes('neft')||t.includes('imps')||t.includes('rtgs');
+  return {amt,tid,isSuccess,hasUPI,hasBank,raw};
+}
+
+// ─── CLAUDE AI ANALYSIS ───────────────────────────────────────────────────────
+async function runClaudeAnalysis(ocrText, imageBase64, extracted){
+  const base64Data = imageBase64.split(',')[1];
+  const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
+
+  const systemPrompt = `You are an expert payment fraud detection AI specializing in Indian UPI, NEFT, IMPS, and online payment receipts.
+
+Your job: Analyze payment screenshots/receipts to determine if they are REAL or FAKE/MANIPULATED.
+
+FAKE payment indicators to check:
+- Pixelation or blurring around numbers (sign of editing)
+- Inconsistent fonts within the same UI element
+- Wrong color schemes for known apps (GPay, PhonePe, Paytm, BHIM)
+- Status says "Success" but transaction ID format is wrong
+- Amount digits look different from surrounding text
+- Screenshot metadata inconsistencies
+- Wrong date/time formats for the claimed platform
+- Fake transaction IDs (real UPI TXN IDs start with specific patterns)
+- Missing standard fields that real receipts always have
+- Text alignment/spacing inconsistencies
+- Wrong app UI elements for the claimed payment app
+- Implausible amounts or suspiciously round numbers with no decimal
+
+REAL payment indicators:
+- Consistent UI matching known payment app design
+- Valid UTR/transaction ID format
+- Proper timestamp format
+- Standard fields present (sender, receiver, amount, date, TXN ID)
+- Consistent font rendering throughout
+- Proper bank name and IFSC codes
+
+Respond ONLY in this exact JSON format (no markdown, no extra text):
+{
+  "verdict": "REAL" or "FAKE" or "SUSPICIOUS",
+  "confidence": 0-100,
+  "reason": "1-2 sentence explanation",
+  "signals": [
+    {"label": "signal description", "type": "ok|bad|warn"},
+    {"label": "signal description", "type": "ok|bad|warn"}
+  ]
+}`;
+
+  const userPrompt = `Analyze this payment receipt image for authenticity.
+
+OCR extracted text:
+${ocrText || '(OCR failed or no text detected)'}
+
+Extracted data:
+- Amount: ${extracted.amt > 0 ? '₹'+extracted.amt : 'not found'}
+- Transaction ID: ${extracted.tid || 'not found'}
+- Success status detected: ${extracted.isSuccess}
+- UPI platform detected: ${extracted.hasUPI}
+
+Look at the image carefully and determine if this is a real or fake/manipulated payment receipt.`;
+
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:600,
+        system: systemPrompt,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:mimeType,data:base64Data}},
+            {type:'text',text:userPrompt}
+          ]
+        }]
+      })
+    });
+
+    if(!resp.ok){
+      const err=await resp.json();
+      console.error('Claude API error:',err);
+      return ruleBasedAnalysis(ocrText, extracted, 'AI error: '+( err.error?.message||resp.status));
+    }
+
+    const data=await resp.json();
+    const raw=data.content.map(c=>c.text||'').join('').trim();
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+
+    return {
+      verdict: parsed.verdict||'SUSPICIOUS',
+      confidence: Math.min(100,Math.max(0,parsed.confidence||50)),
+      reason: parsed.reason||'AI analysis complete.',
+      signals: parsed.signals||[],
+      source:'claude',
+      tid: extracted.tid,
+      amt: extracted.amt
+    };
+  }catch(e){
+    console.error('Claude analysis failed:',e);
+    return ruleBasedAnalysis(ocrText, extracted, 'Falling back to rule-based detection.');
+  }
+}
+
+// ─── RULE BASED FALLBACK ──────────────────────────────────────────────────────
+function ruleBasedAnalysis(raw, extracted, note=''){
+  const t=(raw||'').toLowerCase();
+  let score=50;
+  const signals=[];
+
+  if(extracted.isSuccess){ score+=15; signals.push({label:'Success status present',type:'ok'}); }
+  else { score-=20; signals.push({label:'No success/paid status found',type:'bad'}); }
+
+  if(extracted.tid){ score+=20; signals.push({label:'Transaction ID found',type:'ok'}); }
+  else { score-=25; signals.push({label:'No transaction ID detected',type:'bad'}); }
+
+  if(extracted.amt>0){ score+=10; signals.push({label:'Amount detected: ₹'+extracted.amt,type:'ok'}); }
+  else { score-=15; signals.push({label:'Amount not clearly detected',type:'warn'}); }
+
+  if(extracted.hasUPI){ score+=10; signals.push({label:'UPI platform identifier found',type:'ok'}); }
+  if(extracted.hasBank){ score+=5; signals.push({label:'Bank reference present',type:'ok'}); }
+
+  // Check for duplicate
+  if(extracted.tid && db.used[extracted.tid]){
+    return {verdict:'DUPLICATE',confidence:99,reason:'This transaction ID has already been processed.',signals,source:'rule',tid:extracted.tid,amt:extracted.amt};
+  }
+
+  score=Math.min(100,Math.max(0,score));
+  let verdict='SUSPICIOUS';
+  if(score>=70) verdict='REAL';
+  else if(score<=35) verdict='FAKE';
+
+  return {verdict,confidence:score,reason:note||'Rule-based analysis (no API key set).',signals,source:'rule',tid:extracted.tid,amt:extracted.amt};
+}
+
+// ─── FINALIZE ─────────────────────────────────────────────────────────────────
+function finalizeResult(result, extracted){
+  db.t++;
+  const v=result.verdict;
+
+  // Duplicate check override
+  if(result.verdict!=='DUPLICATE' && extracted.tid && db.used[extracted.tid]){
+    result.verdict='DUPLICATE'; result.confidence=99; result.reason='Transaction ID already processed in this session.';
+  }
+
+  resMatch.innerText = v;
+
+  if(v==='REAL'){
+    db.r += (extracted.amt||0);
+    if(extracted.tid) db.used[extracted.tid]=true;
+    showResult('ok','Payment Verified — REAL',`${result.source==='claude'?'Claude AI':'Rule engine'} confirmed authentic. ${result.reason}`,'ok',result);
+    playSuccess();
+  } else if(v==='DUPLICATE'){
+    showResult('warn','Duplicate Detected',result.reason,'warn',result);
+    db.f++;
+    playWarn();
+  } else if(v==='SUSPICIOUS'){
+    db.f++;
+    showResult('warn','Suspicious Receipt',`Confidence: ${result.confidence}%. ${result.reason}`,'warn',result);
+    playWarn();
+  } else {
+    db.f++;
+    showResult('fail','FAKE DETECTED — Blocked',`${result.source==='claude'?'Claude AI':'Rule engine'}: ${result.reason}`,'fail',result);
+    playFail();
+  }
+
+  localStorage.setItem('ap_v13',JSON.stringify(db));
+  sync();
+  progressWrap.style.display='none';
+  resetBtn.style.display='block';
+}
+
+function showResult(type, title, sub, cssType, result){
+  const h=document.getElementById('resultHeader');
+  h.className='result-header '+cssType;
+  statusTitle.innerText=title;
+  statusSub.innerText=sub;
+
+  // AI reason box
+  const reasonEl=document.getElementById('aiReason');
+  if(result.source==='claude'){
+    reasonEl.style.display='block';
+    reasonEl.className='ai-reason'+(cssType==='fail'?' fail-reason':cssType==='warn'?' warn-reason':'');
+    reasonEl.innerText='← Claude AI · '+result.reason;
+  } else {
+    reasonEl.style.display='none';
+  }
+
+  // Confidence bar
+  const barColor = cssType==='ok'?'#c8f135':cssType==='fail'?'#ff4444':'#ffaa00';
+  confBar.style.width=result.confidence+'%';
+  confBar.style.background=barColor;
+  confPct.innerText=result.confidence+'% confidence';
+  confPct.style.color=barColor;
+
+  // Signals
+  if(result.signals && result.signals.length>0){
+    signalsList.style.display='block';
+    sigItems.innerHTML=result.signals.map(s=>
+      `<div class="sig-item"><div class="sig-dot sig-${s.type}"></div>${s.label}</div>`
+    ).join('');
+  } else {
+    signalsList.style.display='none';
+  }
+
+  resultCard.style.display='block';
+}
+
+function resetApp(){
+  previewImg.style.display='none';
+  dropZone.style.display='block';
+  resultCard.style.display='none';
+  resetBtn.style.display='none';
+  progressWrap.style.display='none';
+  progressFill.style.width='0%';
+  fIn.value='';
+  signalsList.style.display='none';
+  beep(600,0.1);
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms))}
+document.addEventListener('click',()=>{if(AC.state==='suspended') AC.resume()},{once:true});
 </script>
 </body>
 </html>

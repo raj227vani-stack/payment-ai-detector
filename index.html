@@ -2,156 +2,168 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AuthentiPay AI</title>
+<title>AuthentiPay AI - Ultra Protection</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <style>
 body{
-  margin:0; font-family:system-ui;
-  background:linear-gradient(135deg,#0f172a,#e2e8f0);
+  margin:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
   display:flex; justify-content:center; align-items:center; height:100vh;
-  position: relative;
+  position: relative; color: #333;
 }
 .container{
-  width:420px; background:white; border-radius:20px; padding:20px;
-  box-shadow:0 20px 40px rgba(0,0,0,0.2); text-align:center;
+  width:420px; background:white; border-radius:24px; padding:25px;
+  box-shadow:0 25px 50px rgba(0,0,0,0.3); text-align:center;
 }
 #soundToggle {
   position: absolute; top: 20px; right: 20px;
-  background: white; border-radius: 50%; width: 45px; height: 45px;
+  background: white; border-radius: 50%; width: 50px; height: 50px;
   display: flex; justify-content: center; align-items: center;
-  cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  font-size: 20px; border: none; z-index: 10;
+  cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  font-size: 22px; border: none; z-index: 100; transition: 0.3s;
 }
-img{width:100%; border-radius:12px; margin-top:10px;}
-.result{margin-top:10px; padding:12px; border-radius:10px; font-weight:bold;}
-.real{background:#dcfce7; color:#166534;}
-.fake{background:#fee2e2; color:#991b1b;}
-.info{font-size:13px; color:#64748b; margin-top:5px; text-align: left; padding: 0 5px;}
-button,input{margin-top:10px; padding:8px;}
-hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
+#soundToggle:active { transform: scale(0.9); }
+img{width:100%; border-radius:15px; margin-top:15px; max-height: 250px; object-fit: contain; border: 1px solid #ddd;}
+.result{margin-top:15px; padding:15px; border-radius:12px; font-weight:bold; font-size: 18px;}
+.real{background:#dcfce7; color:#15803d; border: 1px solid #bbf7d0;}
+.fake{background:#fee2e2; color:#b91c1c; border: 1px solid #fecaca;}
+.info-section{font-size:14px; color:#475569; margin-top:10px; text-align: left; padding: 10px; background: #f8fafc; border-radius: 10px;}
+button, input[type="file"]{margin-top:15px; padding:12px; border-radius:10px; border: 1px solid #cbd5e1; width: 100%; font-weight: 600;}
+#resetBtn { background: #0f172a; color: white; border: none; display: none; }
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0; }
 </style>
 </head>
 <body>
 
-<button id="soundToggle">🔊</button>
+<button id="soundToggle" title="Sound On/Off">🔊</button>
 
 <div class="container">
-  <h2>AuthentiPay AI</h2>
+  <h2 style="margin-top:0; color:#0f172a;">AuthentiPay AI</h2>
+  
   <input type="file" id="upload" accept="image/*">
-  <button id="resetBtn" style="display:none;">Upload New</button>
   <img id="preview" style="display:none;">
-  <div id="status" class="info" style="text-align:center;">Upload a receipt</div>
-  <div id="result" class="result">Waiting...</div>
-  <div id="details" class="info"></div>
+  
+  <div id="status" style="margin-top:10px; font-size: 13px; color: #64748b;">Ready to Scan</div>
+  
+  <div id="result" class="result">Waiting for Image...</div>
+  
+  <div id="details" class="info-section"></div>
+  
+  <button id="resetBtn">Scan Another Receipt</button>
 </div>
 
 <script>
-let preview=document.getElementById("preview");
-let resultDiv=document.getElementById("result");
-let statusText=document.getElementById("status");
-let details=document.getElementById("details");
-let resetBtn=document.getElementById("resetBtn");
-let soundToggle = document.getElementById("soundToggle");
+const preview=document.getElementById("preview");
+const resultDiv=document.getElementById("result");
+const statusText=document.getElementById("status");
+const details=document.getElementById("details");
+const resetBtn=document.getElementById("resetBtn");
+const soundToggle = document.getElementById("soundToggle");
+const uploadInput = document.getElementById("upload");
 
 let isSoundOn = true;
+
 soundToggle.onclick = () => {
   isSoundOn = !isSoundOn;
   soundToggle.innerText = isSoundOn ? "🔊" : "🔈";
+  soundToggle.style.background = isSoundOn ? "white" : "#e2e8f0";
 };
 
-function speakResult(text) {
+function speak(text) {
   if (isSoundOn && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel(); 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+    window.speechSynthesis.cancel();
+    const speech = new SpeechSynthesisUtterance(text);
+    speech.rate = 0.9;
+    speech.pitch = 1;
+    window.speechSynthesis.speak(speech);
   }
 }
 
-document.getElementById("upload").addEventListener("change",e=>{
-  const file=e.target.files[0];
+uploadInput.addEventListener("change", e => {
+  const file = e.target.files[0];
   if(!file) return;
-  preview.src=URL.createObjectURL(file);
-  preview.style.display="block";
-  preview.onload=()=>{ process(preview); };
+  
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+  uploadInput.style.display = "none";
+  
+  preview.onload = () => { startOCR(); };
 });
 
-resetBtn.onclick=()=>{
+resetBtn.onclick = () => {
   window.speechSynthesis.cancel();
-  preview.style.display="none";
-  resultDiv.innerHTML="Waiting...";
-  resultDiv.className="result";
-  details.innerHTML="";
-  statusText.innerText="Upload a receipt";
-  resetBtn.style.display="none";
-  document.getElementById("upload").value = "";
-  document.getElementById("upload").style.display = "inline-block";
+  location.reload(); // Best way to clear all memory/cache for fresh scan
 };
 
-async function process(img){
-  statusText.innerText="Scanning receipt...";
-  const { data:{ text } } = await Tesseract.recognize(img,'eng');
-  analyze(text);
+async function startOCR(){
+  statusText.innerText = "Analyzing Security Patterns...";
+  try {
+    const { data:{ text } } = await Tesseract.recognize(preview, 'eng');
+    analyze(text);
+  } catch (err) {
+    statusText.innerText = "Error scanning image.";
+  }
 }
 
 function analyze(text){
-  let t = text.toLowerCase();
+  const t = text.toLowerCase();
   
-  // --- 1. SMART AMOUNT EXTRACTION ---
-  // Step A: Look for numbers near currency keywords
-  let amountMatch = text.match(/(?:₹|Rs\.?|INR|Amount|Amt|Total)\s*([\d,]+\.?\d*)/i);
-  let amountValue = "";
+  // 1. ADVANCED AMOUNT EXTRACTION (Fixes 5500/550 issue)
+  let amountValue = "Not Found";
+  // Regex looks for digits with optional commas and decimals after currency markers
+  let amountMatch = text.match(/(?:₹|Rs\.?|INR|Amount|Amt|Total)\s*([\d,]{1,10}(?:\.\d{2})?)/i);
   
   if (amountMatch) {
-    amountValue = amountMatch[1];
+    amountValue = amountMatch[1].replace(/,/g, ''); 
   } else {
-    // Step B: Fallback - Find the largest number with a decimal (common in receipts)
-    let allNumbers = text.match(/\d+[.,]\d{2}/g); 
-    if (allNumbers) {
-      amountValue = allNumbers.sort((a, b) => parseFloat(b.replace(',','')) - parseFloat(a.replace(',','')))[0];
-    } else {
-      amountValue = "Not detected";
+    // Fallback: Find the most prominent numerical figure (usually the amount)
+    let numbers = text.match(/\d{1,3}(?:,\d{3})*(?:\.\d{2})/g) || text.match(/\d{3,10}/g);
+    if (numbers) {
+      amountValue = numbers.sort((a,b) => parseFloat(b.replace(/,/g,'')) - parseFloat(a.replace(/,/g,'')))[0];
     }
   }
 
-  // --- 2. TRANSACTION DIRECTION (Paid vs Received) ---
-  let isReceived = t.includes("received from") || t.includes("from:") || t.includes("credited");
-  let directionText = isReceived ? "Received from" : "Paid to";
+  // 2. UPI ID & NAME DETECTION
+  let upiMatch = text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/);
+  let upiID = upiMatch ? upiMatch[0] : "Not Detected";
 
-  // --- 3. RECIPIENT/SENDER NAME ---
-  let nameMatch = text.match(/(?:Paid to|To|Transfer to|From|Received from|Beneficiary)\s*:?\s*([A-Z\s]{3,25})/i);
-  let personName = nameMatch ? nameMatch[1].trim() : "Unknown Person";
+  let nameMatch = text.match(/(?:Paid to|To|Transfer to|From|Received from|Beneficiary|Receiver)\s*:?\s*([A-Z\s]{3,25})/i);
+  let personName = nameMatch ? nameMatch[1].trim() : "Unknown";
 
-  // --- 4. TRUST SCORING ---
+  // 3. TRANSACTION DIRECTION
+  let isReceived = t.includes("received") || t.includes("credited") || t.includes("from");
+  let direction = isReceived ? "Received from" : "Paid to";
+
+  // 4. AUTHENTICITY SCORE
   let score = 0;
-  if(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/.test(t)) score+=2;
-  if(amountValue !== "Not detected") score+=2;
-  if(/\d{12}/.test(t)) score+=2;
-  if(t.includes("success")||t.includes("paid")||t.includes("completed")) score+=2;
-  
-  let confidence = Math.min(Math.round((score/8)*100), 100);
-  let isReal = score >= 4;
+  if(upiID !== "Not Detected") score += 2;
+  if(amountValue !== "Not Found") score += 2;
+  if(t.includes("success") || t.includes("completed") || t.includes("paid")) score += 2;
+  if(/\d{12}/.test(t)) score += 2; // Ref/Transaction ID check
 
-  // UI Updates
-  resultDiv.className = "result " + (isReal ? "real" : "fake");
-  resultDiv.innerHTML = `${isReal ? "🟢 VERIFIED" : "🔴 SUSPICIOUS"}<br>Trust Score: ${confidence}%`;
+  let isVerified = score >= 4;
+  let trustPercent = Math.min(Math.round((score/8)*100), 100);
+
+  // UI DISPLAY
+  resultDiv.className = "result " + (isVerified ? "real" : "fake");
+  resultDiv.innerHTML = isVerified ? `🟢 VERIFIED (${trustPercent}%)` : `🔴 SUSPICIOUS (${trustPercent}%)`;
 
   details.innerHTML = `
-    <hr>
-    <strong>${directionText}:</strong> ${personName}<br>
+    <strong>Status:</strong> ${isVerified ? 'Authentic' : 'Risk Detected'}<br>
+    <strong>${direction}:</strong> ${personName}<br>
     <strong>Amount:</strong> ₹${amountValue}<br>
-    <strong>Risk:</strong> ${isReal ? "Low" : "High"}
+    <strong>UPI ID:</strong> ${upiID}
+    <hr>
+    <small>Security Check: OCR Parsing Complete.</small>
   `;
 
-  // --- 5. SMART VOICE MESSAGE ---
-  let voiceMessage = isReal ? "Transaction Verified." : "Warning, suspicious receipt.";
-  voiceMessage += ` ${directionText} ${personName}. Amount is ${amountValue} rupees.`;
-  
-  speakResult(voiceMessage);
+  // VOICE OUTPUT
+  let voiceMsg = isVerified ? "Receipt verified." : "Warning, suspicious receipt.";
+  voiceMsg += ` ${direction} ${personName}. Amount is ${amountValue} rupees.`;
+  speak(voiceMsg);
 
-  statusText.innerText = "Done";
-  resetBtn.style.display = "inline-block";
-  document.getElementById("upload").style.display = "none";
+  statusText.innerText = "Scan Complete";
+  resetBtn.style.display = "block";
 }
 </script>
 </body>
